@@ -29,6 +29,9 @@ import re
 import sys
 from types import ModuleType
 import linecache
+from datetime import datetime
+from urllib import quote
+from collections import OrderedDict
 
 import ghostpy
 import ghostpy._templates
@@ -339,6 +342,75 @@ def ensure_scope(context, root):
     return context if isinstance(context, Scope) else Scope(context, context, root)
 
 
+def _date(*args, **kwargs):
+    date_ = args[0].get('date')
+    date = datetime.strptime(date_, '%Y-%m-%d')
+    format = kwargs.get('format')
+    dict = OrderedDict([
+        ("YYYY", "%Y"),
+        ("YY", "%y"),
+        ("MMMM", "%B"),
+        ("MMM", "%b"),
+        ("MM", "%m"),
+        ("M", "%-m"),
+        ("DD", "%d"),
+        ("D", "%-d")
+    ])
+    for entry in dict:
+        format = format.replace(entry, dict[entry])
+    return datetime.strftime(date, format)
+
+
+def _tags(*args, **kwargs):
+    tags = args[0].get('tags')
+    separator = kwargs.get('separator')
+    if separator == None:
+        separator = ", "
+    prefix = kwargs.get('prefix')
+    if prefix == None:
+        prefix = ""
+    else:
+        prefix = prefix + " "
+    suffix = kwargs.get('suffix')
+    if suffix == None:
+        suffix = ""
+    else:
+        suffix = " " + suffix
+    html = ""
+    for tag in tags:
+        html += "<a href='" + tag.get('url') + "'>" + tag.get('id') + "</a>" + separator
+    index = html.rfind(separator)
+    html = prefix + html[:index] + html[index+1:] + suffix
+    return html
+
+
+def _encode(*args, **kwargs):
+    return quote(args[1])
+
+
+def _url(*args, **kwargs):
+    absolute = kwargs.get('absolute')
+    url = args[0].get('url')
+    if absolute:
+        url = "http://" + url
+    return url
+
+
+def _ghost_head(*args, **kwargs):
+    return "<script type='text/javascript' src='assets/js/ghost_head.js'></script>"
+
+
+def _ghost_foot(*args, **kwargs):
+    return "<script type='text/javascript' src='public/jquery.js'></script>"
+
+
+def _for_each(this, options, items):
+    result = []
+    for thing in items:
+         result.extend(options['fn'](thing))
+    return result
+
+
 def _each(this, options, context):
     result = strlist()
 
@@ -427,7 +499,7 @@ def _with(this, options, context):
 
 
 # scope for the compiled code to reuse globals
-_pybars_ = {
+_ghostpy_ = {
     'helpers': {
         'blockHelperMissing': _blockHelperMissing,
         'each': _each,
@@ -437,6 +509,13 @@ _pybars_ = {
         'unless': _unless,
         'with': _with,
         'lookup': _lookup,
+        'date': _date,
+        'tags': _tags,
+        'encode': _encode,
+        'url': _url,
+        'ghost_head': _ghost_head,
+        'ghost_foot': _ghost_foot,
+        'foreach': _for_each
     },
 }
 
@@ -460,7 +539,7 @@ class FunctionContainer:
             u'    raise ghostpy.PybarsError("This template was precompiled with pybars3 version %s, running version %%s" %% ghostpy.__version__)\n'
             u'\n'
             u'from ghostpy import strlist, Scope, PybarsError\n'
-            u'from ghostpy._compiler import _pybars_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
+            u'from ghostpy._compiler import _ghostpy_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
             u'\n'
             u'from functools import partial\n'
             u'\n'
@@ -497,7 +576,7 @@ class CodeBuilder:
         if len(self.stack) == 1:
             self._result.grow([
                 u"def render(context, helpers=None, partials=None, root=None):\n"
-                u"    _helpers = dict(_pybars_['helpers'])\n"
+                u"    _helpers = dict(_ghostpy_['helpers'])\n"
                 u"    if helpers is not None:\n"
                 u"        _helpers.update(helpers)\n"
                 u"    helpers = _helpers\n"
@@ -705,9 +784,21 @@ class Compiler:
     _builder = CodeBuilder()
     _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
-    def __init__(self):
-        self._helpers = {}
+    def _asset(self, *args, **kwargs):
+        return self._theme+"/assets/"+args[1]
+
+    def _navigation(self, *args, **kwargs):
+        path = self.theme + '/partials/navigation.hbs'
+        with open(path) as hbs:
+            source = hbs.read().decode('unicode-escape')
+        template = self.compile(source)
+        output = template({})
+        print output
+
+    def __init__(self, theme):
+        self._helpers = {'navigation': self._navigation}
         self.template_counter = 1
+        self._theme = theme
 
     def _generate_code(self, source):
         """
@@ -776,6 +867,8 @@ class Compiler:
         :return:
             A template function ready to execute
         """
+
+        _ghostpy_['helpers'].update({"navigation": self._navigation, "asset": self._asset})
 
         container = self._generate_code(source)
 
