@@ -2,20 +2,20 @@
 
 ## 0.9.1
 
- - Changed `pybars.__version__` tuple to `pybars.__version_info__`,
-   `pybars.__version__` is now a string
+ - Changed `ghostpy.__version__` tuple to `ghostpy.__version_info__`,
+   `ghostpy.__version__` is now a string
  - Added `Compiler().precompile(source)` that will return Python source code
    to allow for caching of compiled templates and easier debugging
  - Template code now checks to ensure it is being run with the same version of
-   pybars that is was generated with
+   ghostpy that is was generated with
 
 ## 0.8.0
 
- - The library now always throws `pybars.PybarsError` on errors
+ - The library now always throws `ghostpy.PybarsError` on errors
  - Added support for nested subexpressions
  - Block helpers by themselves on lines no longer introduce any whitespace
  - Added `tests.py` test runner and `--debug` flag
- - Moved tests out of `pybars` namespace
+ - Moved tests out of `ghostpy` namespace
 
 ## 0.7.2
 
@@ -23,7 +23,7 @@
 
 ## 0.7.1
 
- - Expose `pybars.Scope()` so helpers can properly scope data so `../` will work
+ - Expose `ghostpy.Scope()` so helpers can properly scope data so `../` will work
 
 ## 0.7.0
 

@@ -1,7 +1,7 @@
 # pybars3 - Handlebars.js for Python 3 and 2
 
 Pybars3 provides a template system for Python which is compatible with
-Handlebars.js. It is a fork of the pybars project that adds Python 3
+Handlebars.js. It is a fork of the ghostpy project that adds Python 3
 compatibility and numerous features from Handlebars.js 2.0.
 
 ## Installation
@@ -35,7 +35,7 @@ Here is a partial list of features that are supported:
  - `lookup` helper for dynamic name access (Handlebars 2.0)
  - Subexpresions (Handlebars 1.3)
  - Lines containing only block statements and whitespace are removed (Handlebars 2.0)
- - `pybars.Compiler().precompile()` that is equivalent to `Handlebars.precompile()`
+ - `ghostpy.Compiler().precompile()` that is equivalent to `Handlebars.precompile()`
 
 Features not currently implemented:
 
@@ -52,7 +52,7 @@ Typical usage:
 
 ```python
 # Get a compiler
-from pybars import Compiler
+from ghostpy import Compiler
 compiler = Compiler()
 
 # Compile the template
@@ -129,7 +129,7 @@ compiler = pybars.Compiler()
 template = compiler.compile(source)
 
 def _bold(this, name):
-    return pybars.strlist(['<strong>', name, '</strong>'])
+    return ghostpy.strlist(['<strong>', name, '</strong>'])
 helpers = {'bold': _bold}
 
 output = template({'name': 'Will'}, helpers=helpers)

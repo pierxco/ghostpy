@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # GNU Lesser General Public License version 3 (see the file LICENSE).
 
-"""Tests for the pybars compiler."""
+"""Tests for the ghostpy compiler."""
 
 try:
     str_class = unicode
@@ -23,7 +23,7 @@ except NameError:
 
 from unittest import TestCase
 
-from pybars import Compiler
+from ghostpy import Compiler
 
 
 def render(source, context, helpers=None, partials=None, knownHelpers=None,
@@ -43,8 +43,8 @@ def render(source, context, helpers=None, partials=None, knownHelpers=None,
 class TestCompiler(TestCase):
 
     def test_import(self):
-        import pybars
-        pybars.Compiler
+        import ghostpy
+        ghostpy.Compiler
 
     def test_smoke(self):
 

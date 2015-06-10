@@ -31,8 +31,8 @@ except NameError:
 import sys
 import os
 
-import pybars
-from pybars import (
+import ghostpy
+from ghostpy import (
     strlist,
     Scope,
     PybarsError,
@@ -1715,13 +1715,13 @@ class TestAcceptance(TestCase):
         result = ''
 
         log = []
-        original_log = pybars.log
-        pybars.log = log.append
+        original_log = ghostpy.log
+        ghostpy.log = log.append
 
         self.assertRender(template, context, result)
         self.assertEqual(["whee"], log)
 
-        pybars.log = original_log
+        ghostpy.log = original_log
 
     def test_overriding_property_lookup(self):
         pass

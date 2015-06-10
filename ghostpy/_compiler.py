@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # GNU Lesser General Public License version 3 (see the file LICENSE).
 
-"""The compiler for pybars."""
+"""The compiler for ghostpy."""
 
 
 __all__ = [
@@ -30,8 +30,8 @@ import sys
 from types import ModuleType
 import linecache
 
-import pybars
-import pybars._templates
+import ghostpy
+import ghostpy._templates
 from pymeta.grammar import OMeta
 
 # This allows the code to run on Python 2 and 3 by
@@ -387,7 +387,7 @@ def _if(this, options, context):
 
 
 def _log(this, context):
-    pybars.log(context)
+    ghostpy.log(context)
 
 
 def _unless(this, options, context):
@@ -454,18 +454,18 @@ class FunctionContainer:
     @property
     def full_code(self):
         headers = (
-            u'import pybars\n'
+            u'import ghostpy\n'
             u'\n'
-            u'if pybars.__version__ != %s:\n'
-            u'    raise pybars.PybarsError("This template was precompiled with pybars3 version %s, running version %%s" %% pybars.__version__)\n'
+            u'if ghostpy.__version__ != %s:\n'
+            u'    raise ghostpy.PybarsError("This template was precompiled with pybars3 version %s, running version %%s" %% ghostpy.__version__)\n'
             u'\n'
-            u'from pybars import strlist, Scope, PybarsError\n'
-            u'from pybars._compiler import _pybars_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
+            u'from ghostpy import strlist, Scope, PybarsError\n'
+            u'from ghostpy._compiler import _pybars_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
             u'\n'
             u'from functools import partial\n'
             u'\n'
             u'\n'
-        ) % (repr(pybars.__version__), pybars.__version__)
+        ) % (repr(ghostpy.__version__), ghostpy.__version__)
 
         return headers + self.code
 
@@ -780,7 +780,7 @@ class Compiler:
         container = self._generate_code(source)
 
         def make_module_name(name, suffix=None):
-            output = 'pybars._templates.%s' % name
+            output = 'ghostpy._templates.%s' % name
             if suffix:
                 output += '_%s' % suffix
             return output
@@ -802,7 +802,7 @@ class Compiler:
                 mod_name = make_module_name(path, self.template_counter)
 
         mod = ModuleType(mod_name)
-        filename = '%s.py' % mod_name.replace('pybars.', '').replace('.', '/')
+        filename = '%s.py' % mod_name.replace('ghostpy.', '').replace('.', '/')
         exec(compile(container.full_code, filename, 'exec', dont_inherit=True), mod.__dict__)
         sys.modules[mod_name] = mod
         linecache.getlines(filename, mod.__dict__)

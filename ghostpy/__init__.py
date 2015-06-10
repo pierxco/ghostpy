@@ -37,7 +37,7 @@ __all__ = [
     'PybarsError'
     ]
 
-from pybars._compiler import (
+from ghostpy._compiler import (
     Compiler,
     strlist,
     Scope,
