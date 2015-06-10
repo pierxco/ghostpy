@@ -16,17 +16,17 @@
 # GNU Lesser General Public License version 3 (see the file LICENSE).
 
 
-from distutils.core import setup
+from setuptools import setup
 
 
-setup(name='pybars3',
+setup(name='ghostpy',
       version='0.9.1',
-      description='Handlebars.js templating for Python 3 and 2',
-      long_description='Documentation is maintained at https://github.com/wbond/pybars3#readme',
-      author='wbond, mjumbewu',
-      author_email='will@wbond.net, mjumbewu@gmail.com',
-      url='https://github.com/wbond/pybars3',
-      packages=['pybars', 'pybars._templates'],
+      description='Ghost templating for Python 3 and 2',
+      long_description='Documentation is maintained at https://github.com/ticklemepierce/pybars3#readme',
+      author='ticklemepierce',
+      author_email='pierce.tickle@gmail.com',
+      url='https://github.com/ticklemepierce/pybars3',
+      packages=['ghostpy', 'ghostpy._templates'],
       package_dir={'': '.'},
       classifiers=[
           'Development Status :: 4 - Beta',
