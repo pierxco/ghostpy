@@ -780,6 +780,7 @@ class CodeBuilder:
         self._result.grow([
             # u"    if '%s' not in partials:\n" % symbol,
             # u"        raise PybarsError('Partial \"%s\" not defined')\n" % symbol,
+            u"    _partials = dict(_ghostpy_['partials'])"
             u"    inner = _partials['%s']\n" % symbol,
             u"    scope = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
         #self._invoke_template("inner", "scope")
