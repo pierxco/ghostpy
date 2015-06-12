@@ -519,7 +519,8 @@ _ghostpy_ = {
         'foreach': _for_each
     },
     'partials': {},
-    'theme': 'casper'
+    'theme': 'casper',
+    'blog_dict': {}
 }
 
 
@@ -748,7 +749,7 @@ class CodeBuilder:
         with open(str(path)) as hbs:
             source = hbs.read().decode('unicode-escape')
         template = Compiler(_ghostpy_['theme']).compile(source)
-        output = template({})
+        output = template(_ghostpy_['blog_dict'])
         self._result = result
         _ghostpy_['partials'].update({symbol: output})
         arg = ""
