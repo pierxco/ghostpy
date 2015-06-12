@@ -556,9 +556,8 @@ class CodeBuilder:
 
     """Builds code for a template."""
 
-    def __init__(self, compiler):
+    def __init__(self):
         self._reset()
-        self.compiler = compiler
 
     def _reset(self):
         self.stack = []
@@ -744,12 +743,13 @@ class CodeBuilder:
             ])
 
     def add_partial(self, symbol, arguments):
+        result = self._result
         path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
         with open(str(path)) as hbs:
             source = hbs.read().decode('unicode-escape')
-        template = self.compiler.compile(source)
+        template = Compiler(_ghostpy_['theme']).compile(source)
         output = template({})
-
+        self._result = result
         _ghostpy_['partials'].update({symbol: output})
         arg = ""
 
@@ -781,8 +781,8 @@ class CodeBuilder:
             # u"        raise PybarsError('Partial \"%s\" not defined')\n" % symbol,
             u"    inner = _partials['%s']\n" % symbol,
             u"    scope = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
-        self._invoke_template("inner", "scope")
-
+        #self._invoke_template("inner", "scope")
+        self._result.grow([u"    result.append(inner)\n"])
 
 class Compiler:
 
@@ -805,11 +805,11 @@ class Compiler:
             source = hbs.read().decode('unicode-escape')
         template = self.compile(source)
         output = template({})
-        print output
+        return output
 
     def __init__(self, theme):
         self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
-        self._builder = CodeBuilder(self)
+        self._builder = CodeBuilder()
         self._compiler = OMeta.makeGrammar(compile_grammar, {'builder': self._builder})
         self._helpers = {}
         self.template_counter = 1
