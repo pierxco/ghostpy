@@ -242,7 +242,7 @@ class Scope:
         self.last = last
 
     def get(self, name, default=None):
-        if name == '@root':
+        if name == '@blog':
             return self.root
         if name == '@_parent':
             return self.parent
@@ -406,8 +406,9 @@ def _ghost_foot(*args, **kwargs):
 
 def _for_each(this, options, items):
     result = []
-    for thing in items:
-         result.extend(options['fn'](thing))
+    if items is not None:
+        for thing in items:
+            result.extend(options['fn'](thing))
     return result
 
 
@@ -517,6 +518,8 @@ _ghostpy_ = {
         'ghost_foot': _ghost_foot,
         'foreach': _for_each
     },
+    'partials': {},
+    'theme': 'casper'
 }
 
 
@@ -553,8 +556,9 @@ class CodeBuilder:
 
     """Builds code for a template."""
 
-    def __init__(self):
+    def __init__(self, compiler):
         self._reset()
+        self.compiler = compiler
 
     def _reset(self):
         self.stack = []
@@ -577,11 +581,12 @@ class CodeBuilder:
             self._result.grow([
                 u"def render(context, helpers=None, partials=None, root=None):\n"
                 u"    _helpers = dict(_ghostpy_['helpers'])\n"
+                u"    _partials = dict(_ghostpy_['partials'])\n"
                 u"    if helpers is not None:\n"
                 u"        _helpers.update(helpers)\n"
                 u"    helpers = _helpers\n"
-                u"    if partials is None:\n"
-                u"        partials = {}\n"
+                u"    if partials is not None:\n"
+                u"        _partials.update(partials)\n"
                 u"    called = root is None\n"
                 u"    if called:\n"
                 u"        root = context\n"
@@ -739,6 +744,13 @@ class CodeBuilder:
             ])
 
     def add_partial(self, symbol, arguments):
+        path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
+        with open(path) as hbs:
+            source = hbs.read().decode('unicode-escape')
+        template = self.compiler.compile(source)
+        output = template({})
+
+        _ghostpy_['partials'].update({symbol: output})
         arg = ""
 
         overrides = None
@@ -765,9 +777,9 @@ class CodeBuilder:
         self._result.grow([u"    overrides = %s\n" % overrides_literal])
 
         self._result.grow([
-            u"    if '%s' not in partials:\n" % symbol,
-            u"        raise PybarsError('Partial \"%s\" not defined')\n" % symbol,
-            u"    inner = partials['%s']\n" % symbol,
+            # u"    if '%s' not in partials:\n" % symbol,
+            # u"        raise PybarsError('Partial \"%s\" not defined')\n" % symbol,
+            u"    inner = _partials['%s']\n" % symbol,
             u"    scope = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
         self._invoke_template("inner", "scope")
 
@@ -780,15 +792,15 @@ class Compiler:
     state in CodeBuilder.
     """
 
-    _handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
-    _builder = CodeBuilder()
-    _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
+    # _handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
+    # _builder = CodeBuilder()
+    # _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
     def _asset(self, *args, **kwargs):
-        return self._theme+"/assets/"+args[1]
+        return _ghostpy_['theme'] + "/assets/"+args[1]
 
     def _navigation(self, *args, **kwargs):
-        path = self.theme + '/partials/navigation.hbs'
+        path = _ghostpy_['theme'] + '/partials/navigation.hbs'
         with open(path) as hbs:
             source = hbs.read().decode('unicode-escape')
         template = self.compile(source)
@@ -796,9 +808,12 @@ class Compiler:
         print output
 
     def __init__(self, theme):
-        self._helpers = {'navigation': self._navigation}
+        self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
+        self._builder = CodeBuilder(self)
+        self._compiler = OMeta.makeGrammar(compile_grammar, {'builder': self._builder})
+        self._helpers = {}
         self.template_counter = 1
-        self._theme = theme
+        _ghostpy_['theme'] = theme
 
     def _generate_code(self, source):
         """
