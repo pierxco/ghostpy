@@ -397,7 +397,7 @@ def _url(*args, **kwargs):
 
 
 def _ghost_head(*args, **kwargs):
-    return "<script type='text/javascript' src='assets/js/ghost_head.js'></script>"
+    return ""
 
 
 def _ghost_foot(*args, **kwargs):
