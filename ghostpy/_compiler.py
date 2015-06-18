@@ -342,6 +342,10 @@ def ensure_scope(context, root):
     return context if isinstance(context, Scope) else Scope(context, context, root)
 
 
+def _author(*args, **kwargs):
+    return args[0].get('author').get('name')
+
+
 def _date(*args, **kwargs):
     date_ = args[0].get('date')
     date = datetime.strptime(date_, '%Y-%m-%d')
@@ -499,6 +503,9 @@ def _with(this, options, context):
     return options['fn'](context)
 
 
+def _author_block(this, options, *args, **kwargs):
+    return options['fn'](this)
+
 # scope for the compiled code to reuse globals
 _ghostpy_ = {
     'helpers': {
@@ -516,7 +523,9 @@ _ghostpy_ = {
         'url': _url,
         'ghost_head': _ghost_head,
         'ghost_foot': _ghost_foot,
-        'foreach': _for_each
+        'foreach': _for_each,
+        'author': _author,
+        '#author': _author_block
     },
     'partials': {},
     'theme': 'casper',
@@ -543,9 +552,18 @@ class FunctionContainer:
             u'    raise ghostpy.PybarsError("This template was precompiled with pybars3 version %s, running version %%s" %% ghostpy.__version__)\n'
             u'\n'
             u'from ghostpy import strlist, Scope, PybarsError\n'
-            u'from ghostpy._compiler import _ghostpy_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
+            u'from ghostpy._compiler import Compiler, _ghostpy_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
             u'\n'
             u'from functools import partial\n'
+            u'\n'
+            u'\n'
+            u'def _partial(path, context, helpers, partials, root):\n'
+            u"    compiler = Compiler(_ghostpy_['theme'])\n"
+            u"    with open(path) as hbs:\n"
+            u"        source = hbs.read().decode('unicode-escape')\n"
+            u"    template = compiler.compile(source)\n"
+            u"    output = template(context)\n"
+            u"    return output\n"
             u'\n'
             u'\n'
         ) % (repr(ghostpy.__version__), ghostpy.__version__)
@@ -587,6 +605,7 @@ class CodeBuilder:
                 u"    helpers = _helpers\n"
                 u"    if partials is not None:\n"
                 u"        _partials.update(partials)\n"
+                u"    partials = _partials\n"
                 u"    called = root is None\n"
                 u"    if called:\n"
                 u"        root = context\n"
@@ -630,6 +649,8 @@ class CodeBuilder:
         return u"partial(%s, helpers=helpers, partials=partials, root=root)" % name
 
     def add_block(self, symbol, arguments, nested, alt_nested):
+        if symbol == "author":
+            symbol = "#" + symbol
         name = nested.name
         self._locals[name] = nested
 
@@ -681,37 +702,41 @@ class CodeBuilder:
         return output
 
     def find_lookup(self, path, path_type, call):
-        if path_type == "simple":  # simple names can reference helpers.
-            # TODO: compile this whole expression in the grammar; for now,
-            # fugly but only a compile time overhead.
-            # XXX: just rm.
-            realname = path.replace('.get("', '').replace('")', '')
-            self._result.grow([
-                u"    value = helpers.get('%s')\n" % realname,
-                u"    if value is None:\n"
-                u"        value = resolve(context, '%s')\n" % path,
-                ])
+        if path == "navigation":
+            self.add_partial("navigation", [])
         else:
-            realname = None
-            self._result.grow(u"    value = %s\n" % path)
-        self._result.grow([
-            u"    if hasattr(value, '__call__'):\n"
-            u"        value = value(context%s\n" % call,
-            ])
-        if realname:
-            self._result.grow(
-                u"    elif value is None:\n"
-                u"        value = helpers['helperMissing'](context, '%s'%s\n"
-                    % (realname, call)
-                )
+            if path_type == "simple":  # simple names can reference helpers.
+                # TODO: compile this whole expression in the grammar; for now,
+                # fugly but only a compile time overhead.
+                # XXX: just rm.
+                realname = path.replace('.get("', '').replace('")', '')
+                self._result.grow([
+                    u"    value = helpers.get('%s')\n" % realname,
+                    u"    if value is None:\n"
+                    u"        value = resolve(context, '%s')\n" % path,
+                    ])
+            else:
+                realname = None
+                self._result.grow(u"    value = %s\n" % path)
+            self._result.grow([
+                u"    if hasattr(value, '__call__'):\n"
+                u"        value = value(context%s\n" % call,
+                ])
+            if realname:
+                self._result.grow(
+                    u"    elif value is None:\n"
+                    u"        value = helpers['helperMissing'](context, '%s'%s\n"
+                        % (realname, call)
+                    )
 
     def add_escaped_expand(self, path_type_path, arguments):
         (path_type, path) = path_type_path
         call = self.arguments_to_call(arguments)
         self.find_lookup(path, path_type, call)
-        self._result.grow([
-            u"    result.grow(prepare(value, True))\n"
-            ])
+        if path != "navigation":
+            self._result.grow([
+                u"    result.grow(prepare(value, True))\n"
+                ])
 
     def add_expand(self, path_type_path, arguments):
         (path_type, path) = path_type_path
@@ -736,23 +761,14 @@ class CodeBuilder:
 
     def _invoke_template(self, fn_name, this_name):
         self._result.grow([
-            u"    result.grow(",
-            fn_name,
-            u"(",
-            this_name,
-            u", helpers=helpers, partials=partials, root=root))\n"
-            ])
+            u"    result.grow(_partial(%s, %s, helpers=helpers, partials=partials, root=root))\n" % (fn_name, this_name)
+        ])
+
 
     def add_partial(self, symbol, arguments):
-        result = self._result
-        path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
-        with open(str(path)) as hbs:
-            source = hbs.read().decode('unicode-escape')
-        template = Compiler(_ghostpy_['theme']).compile(source)
-        output = template(_ghostpy_['blog_dict'])
-        self._result = result
-        _ghostpy_['partials'].update({symbol: output})
         arg = ""
+
+        path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
 
         overrides = None
         positional_args = 0
@@ -778,13 +794,9 @@ class CodeBuilder:
         self._result.grow([u"    overrides = %s\n" % overrides_literal])
 
         self._result.grow([
-            # u"    if '%s' not in partials:\n" % symbol,
-            # u"        raise PybarsError('Partial \"%s\" not defined')\n" % symbol,
-            u"    _partials = dict(_ghostpy_['partials'])\n"
-            u"    inner = _partials['%s']\n" % symbol,
+            u"    path = '%s'\n" % path,
             u"    scope = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
-        #self._invoke_template("inner", "scope")
-        self._result.grow([u"    result.append(inner)\n"])
+        self._invoke_template("path", "scope")
 
 class Compiler:
 
@@ -800,14 +812,6 @@ class Compiler:
 
     def _asset(self, *args, **kwargs):
         return _ghostpy_['theme'] + "/assets/"+args[1]
-
-    def _navigation(self, *args, **kwargs):
-        path = _ghostpy_['theme'] + '/partials/navigation.hbs'
-        with open(path) as hbs:
-            source = hbs.read().decode('unicode-escape')
-        template = self.compile(source)
-        output = template({})
-        return output
 
     def __init__(self, theme):
         self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
@@ -885,7 +889,7 @@ class Compiler:
             A template function ready to execute
         """
 
-        _ghostpy_['helpers'].update({"navigation": self._navigation, "asset": self._asset})
+        _ghostpy_['helpers'].update({"asset": self._asset})
 
         container = self._generate_code(source)
 
