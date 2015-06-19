@@ -27,6 +27,7 @@ __metaclass__ = type
 
 import re
 import sys
+import bleach
 from types import ModuleType
 import linecache
 from datetime import datetime
@@ -506,6 +507,30 @@ def _with(this, options, context):
 def _author_block(this, options, *args, **kwargs):
     return options['fn'](this)
 
+
+def _excerpt(this, *args, **kwargs):
+    tags = []
+    attr = {}
+    styles = []
+    strip = True
+
+    content = str(bleach.clean(this.get('content'),
+                        tags=tags,
+                        attributes=attr,
+                        styles=styles,
+                        strip=strip))
+
+    if "words" in kwargs.keys():
+        words = content.split()
+        excerpt = " ".join(words[:int(kwargs.get("words"))])
+
+    elif "characters" in kwargs.keys():
+        excerpt = content[:int(kwargs.get("characters"))]
+
+    else:
+        excerpt = content
+
+    return excerpt
 # scope for the compiled code to reuse globals
 _ghostpy_ = {
     'helpers': {
@@ -525,7 +550,8 @@ _ghostpy_ = {
         'ghost_foot': _ghost_foot,
         'foreach': _for_each,
         'author': _author,
-        '#author': _author_block
+        '#author': _author_block,
+        'excerpt': _excerpt
     },
     'partials': {},
     'theme': 'casper',
