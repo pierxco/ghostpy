@@ -347,6 +347,24 @@ def _author(*args, **kwargs):
     return args[0].get('author').get('name')
 
 
+def _author_block(this, options, *args, **kwargs):
+    return options['fn'](this)
+
+
+def _blockHelperMissing(this, options, context):
+    if hasattr(context, '__call__'):
+        context = context(this)
+    if context != u"" and not context:
+        return options['inverse'](this)
+    if type(context) in (list, strlist, tuple):
+        return _each(this, options, context)
+    if context is True:
+        callwith = this
+    else:
+        callwith = context
+    return options['fn'](callwith)
+
+
 def _date(*args, **kwargs):
     date_ = args[0].get('date')
     date = datetime.strptime(date_, '%Y-%m-%d')
@@ -364,57 +382,6 @@ def _date(*args, **kwargs):
     for entry in dict:
         format = format.replace(entry, dict[entry])
     return datetime.strftime(date, format)
-
-
-def _tags(*args, **kwargs):
-    tags = args[0].get('tags')
-    separator = kwargs.get('separator')
-    if separator == None:
-        separator = ", "
-    prefix = kwargs.get('prefix')
-    if prefix == None:
-        prefix = ""
-    else:
-        prefix = prefix + " "
-    suffix = kwargs.get('suffix')
-    if suffix == None:
-        suffix = ""
-    else:
-        suffix = " " + suffix
-    html = ""
-    for tag in tags:
-        html += "<a href='" + tag.get('url') + "'>" + tag.get('id') + "</a>" + separator
-    index = html.rfind(separator)
-    html = prefix + html[:index] + html[index+1:] + suffix
-    return html
-
-
-def _encode(*args, **kwargs):
-    return quote(args[1])
-
-
-def _url(*args, **kwargs):
-    absolute = kwargs.get('absolute')
-    url = args[0].get('url')
-    if absolute:
-        url = "http://" + url
-    return url
-
-
-def _ghost_head(*args, **kwargs):
-    return ""
-
-
-def _ghost_foot(*args, **kwargs):
-    return "<script type='text/javascript' src='public/jquery.js'></script>"
-
-
-def _for_each(this, options, items):
-    result = []
-    if items is not None:
-        for thing in items:
-            result.extend(options['fn'](thing))
-    return result
 
 
 def _each(this, options, context):
@@ -455,57 +422,8 @@ def _each(this, options, context):
     return result
 
 
-def _if(this, options, context):
-    if hasattr(context, '__call__'):
-        context = context(this)
-    if context:
-        return options['fn'](this)
-    else:
-        return options['inverse'](this)
-
-
-def _log(this, context):
-    ghostpy.log(context)
-
-
-def _unless(this, options, context):
-    if not context:
-        return options['fn'](this)
-
-
-def _lookup(this, context, key):
-    try:
-        return context[key]
-    except (KeyError, IndexError, TypeError):
-        return
-
-
-def _blockHelperMissing(this, options, context):
-    if hasattr(context, '__call__'):
-        context = context(this)
-    if context != u"" and not context:
-        return options['inverse'](this)
-    if type(context) in (list, strlist, tuple):
-        return _each(this, options, context)
-    if context is True:
-        callwith = this
-    else:
-        callwith = context
-    return options['fn'](callwith)
-
-
-def _helperMissing(scope, name, *args):
-    if not args:
-        return None
-    raise PybarsError(u"Could not find property %s" % (name,))
-
-
-def _with(this, options, context):
-    return options['fn'](context)
-
-
-def _author_block(this, options, *args, **kwargs):
-    return options['fn'](this)
+def _encode(*args, **kwargs):
+    return quote(args[1])
 
 
 def _excerpt(this, *args, **kwargs):
@@ -531,27 +449,111 @@ def _excerpt(this, *args, **kwargs):
         excerpt = content
 
     return excerpt
+
+
+def _for_each(this, options, items):
+    result = []
+    if items is not None:
+        for thing in items:
+            result.extend(options['fn'](thing))
+    return result
+
+
+def _ghost_head(*args, **kwargs):
+    return ""
+
+
+def _ghost_foot(*args, **kwargs):
+    return "<script type='text/javascript' src='public/jquery.js'></script>"
+
+
+
+def _helperMissing(scope, name, *args):
+    if not args:
+        return None
+    raise PybarsError(u"Could not find property %s" % (name,))
+
+
+def _if(this, options, context):
+    if hasattr(context, '__call__'):
+        context = context(this)
+    if context:
+        return options['fn'](this)
+    else:
+        return options['inverse'](this)
+
+
+def _log(this, context):
+    ghostpy.log(context)
+
+
+def _lookup(this, context, key):
+    try:
+        return context[key]
+    except (KeyError, IndexError, TypeError):
+        return
+
+
+def _tags(*args, **kwargs):
+    tags = args[0].get('tags')
+    separator = kwargs.get('separator')
+    if separator == None:
+        separator = ", "
+    prefix = kwargs.get('prefix')
+    if prefix == None:
+        prefix = ""
+    else:
+        prefix = prefix + " "
+    suffix = kwargs.get('suffix')
+    if suffix == None:
+        suffix = ""
+    else:
+        suffix = " " + suffix
+    html = ""
+    for tag in tags:
+        html += "<a href='" + tag.get('url') + "'>" + tag.get('id') + "</a>" + separator
+    index = html.rfind(separator)
+    html = prefix + html[:index] + html[index+1:] + suffix
+    return html
+
+
+def _unless(this, options, context):
+    if not context:
+        return options['fn'](this)
+
+
+def _url(*args, **kwargs):
+    absolute = kwargs.get('absolute')
+    url = args[0].get('url')
+    if absolute:
+        url = "http://" + url
+    return url
+
+
+def _with(this, options, context):
+    return options['fn'](context)
+
+
 # scope for the compiled code to reuse globals
 _ghostpy_ = {
     'helpers': {
+        '_author': _author,
         'blockHelperMissing': _blockHelperMissing,
-        'each': _each,
-        'if': _if,
-        'helperMissing': _helperMissing,
-        'log': _log,
-        'unless': _unless,
-        'with': _with,
-        'lookup': _lookup,
         'date': _date,
-        'tags': _tags,
+        'each': _each,
         'encode': _encode,
-        'url': _url,
+        'excerpt': _excerpt,
+        'foreach': _for_each,
         'ghost_head': _ghost_head,
         'ghost_foot': _ghost_foot,
-        'foreach': _for_each,
-        'author': _author,
-        '#author': _author_block,
-        'excerpt': _excerpt
+        'helperMissing': _helperMissing,
+        'if': _if,
+        'log': _log,
+        'lookup': _lookup,
+        'tags': _tags,
+        'unless': _unless,
+        'url': _url,
+        'with': _with
     },
     'partials': {},
     'theme': 'casper',
@@ -675,8 +677,8 @@ class CodeBuilder:
         return u"partial(%s, helpers=helpers, partials=partials, root=root)" % name
 
     def add_block(self, symbol, arguments, nested, alt_nested):
-        if symbol == "author":
-            symbol = "#" + symbol
+        # if symbol == "author":
+        #     symbol = "#" + symbol
         name = nested.name
         self._locals[name] = nested
 
@@ -731,6 +733,8 @@ class CodeBuilder:
         if path == "navigation":
             self.add_partial("navigation", [])
         else:
+            if path == "author":
+                path = "_author"
             if path_type == "simple":  # simple names can reference helpers.
                 # TODO: compile this whole expression in the grammar; for now,
                 # fugly but only a compile time overhead.
