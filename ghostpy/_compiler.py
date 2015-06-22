@@ -446,8 +446,8 @@ def _excerpt(this, *args, **kwargs):
         excerpt = content[:int(kwargs.get("characters"))]
 
     else:
-        excerpt = content
-
+        words = content.split()
+        excerpt = " ".join(words[:50])
     return excerpt
 
 
@@ -494,6 +494,15 @@ def _lookup(this, context, key):
         return
 
 
+def _plural(*args, **kwargs):
+    if args[1] == 0:
+        return kwargs.get("empty")
+    elif args[1] == 1:
+        return kwargs.get("singular")
+    elif args[1] > 1:
+        return kwargs.get("plural")
+
+
 def _tags(*args, **kwargs):
     tags = args[0].get('tags')
     separator = kwargs.get('separator')
@@ -520,7 +529,8 @@ def _tags(*args, **kwargs):
 def _unless(this, options, context):
     if not context:
         return options['fn'](this)
-
+    else:
+        return options['inverse'](this)
 
 def _url(*args, **kwargs):
     absolute = kwargs.get('absolute')
@@ -550,6 +560,7 @@ _ghostpy_ = {
         'if': _if,
         'log': _log,
         'lookup': _lookup,
+        'plural': _plural,
         'tags': _tags,
         'unless': _unless,
         'url': _url,
@@ -677,8 +688,6 @@ class CodeBuilder:
         return u"partial(%s, helpers=helpers, partials=partials, root=root)" % name
 
     def add_block(self, symbol, arguments, nested, alt_nested):
-        # if symbol == "author":
-        #     symbol = "#" + symbol
         name = nested.name
         self._locals[name] = nested
 
