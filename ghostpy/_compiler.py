@@ -33,6 +33,7 @@ import linecache
 from datetime import datetime
 from urllib import quote
 from collections import OrderedDict
+from BeautifulSoup import BeautifulSoup
 
 import ghostpy
 import ghostpy._templates
@@ -365,6 +366,47 @@ def _blockHelperMissing(this, options, context):
     return options['fn'](callwith)
 
 
+def _content(*args, **kwargs):
+    if kwargs.get('words') is not None:
+        input_string=args[0].get('content')
+        p = re.compile(r'<[^<]*?>')
+        words=p.sub('', input_string).split(' ')
+        words=filter(lambda a: a != '', words)
+        s=words[:int(kwargs.get('words'))]
+
+        temp=input_string
+        k=s.count(s[-1])
+        i=1
+        j=0
+        while i<=k:
+            j+=temp.find(s[-1])
+            temp=temp[j+len(s[-1]):]
+            i+=1
+        output_string=input_string[:j+len(s[-1])]
+        content = BeautifulSoup(output_string)
+    elif kwargs.get('characters') is not None:
+        input_string=args[0].get('content')
+        p = re.compile(r'<[^<]*?>')
+        stripped = p.sub('', input_string)
+        chars = list(stripped[:int(kwargs.get('characters'))])
+        s = filter(lambda a: a != '', chars)
+
+        temp = input_string
+        k=s.count(s[-1])
+        i=1
+        j=0
+        while i<=k:
+            j+=temp.find(s[-1])
+            temp=temp[j+len(s[-1]):]
+            i+=1
+        output_string=input_string[:j+len(s[-1])]
+        content = BeautifulSoup(output_string)
+
+    else:
+        content = args[0].get('content')
+    return content
+
+
 def _date(*args, **kwargs):
     date_ = args[0].get('date')
     date = datetime.strptime(date_, '%Y-%m-%d')
@@ -443,7 +485,9 @@ def _excerpt(this, *args, **kwargs):
         excerpt = " ".join(words[:int(kwargs.get("words"))])
 
     elif "characters" in kwargs.keys():
-        excerpt = content[:int(kwargs.get("characters"))]
+        chars = int(kwargs.get('characters'))
+        last = content.find(' ', chars)
+        excerpt = content[:last]
 
     else:
         words = content.split()
@@ -536,7 +580,14 @@ def _url(*args, **kwargs):
     absolute = kwargs.get('absolute')
     url = args[0].get('url')
     if absolute:
-        url = "http://" + url
+        # if post:
+        #
+        # if tag:
+        #
+        # if user:
+        #
+        # if nav:
+        print "Test"
     return url
 
 
@@ -549,6 +600,7 @@ _ghostpy_ = {
     'helpers': {
         '_author': _author,
         'blockHelperMissing': _blockHelperMissing,
+        'content': _content,
         'date': _date,
         'each': _each,
         'encode': _encode,
