@@ -906,7 +906,7 @@ class Compiler:
 
 
     def _image(self, *args, **kwargs):
-        path = _ghostpy_['theme'] + "/assets/"+args[0].get('image')
+        path = args[0].get('image')
         absolute = False
         if 'absolute' in kwargs.keys():
             absolute = kwargs.get('absolute')
