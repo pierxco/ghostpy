@@ -495,11 +495,41 @@ def _excerpt(this, *args, **kwargs):
     return excerpt
 
 
-def _for_each(this, options, items):
-    result = []
-    if items is not None:
-        for thing in items:
-            result.extend(options['fn'](thing))
+def _for_each(this, options, context):
+    result = strlist()
+
+    # All sequences in python have a length
+    try:
+        last_index = len(context) - 1
+
+        # If there are no items, we want to trigger the else clause
+        if last_index < 0:
+            raise IndexError()
+
+    except (TypeError, IndexError):
+        return options['inverse'](this)
+
+    # We use the presence of a keys method to determine if the
+    # key attribute should be passed to the block handler
+    has_keys = hasattr(context, 'keys')
+
+    index = 0
+    for value in context:
+        kwargs = {
+            'index': index,
+            'first': index == 0,
+            'last': index == last_index
+        }
+
+        if has_keys:
+            kwargs['key'] = value
+            value = context[value]
+
+        scope = Scope(value, this, options['root'], **kwargs)
+        result.grow(options['fn'](scope))
+
+        index += 1
+
     return result
 
 
