@@ -577,6 +577,14 @@ def _plural(*args, **kwargs):
         return kwargs.get("plural")
 
 
+def _post_class(*args, **kwargs):
+    classes = ["post"]
+    if args[0].get('featured'):
+        classes.append("featured")
+    for tag in args[0].get('tags'):
+        classes.append("tag-" + tag.get('id'))
+    return " ".join(classes)
+
 def _tags(*args, **kwargs):
     tags = args[0].get('tags')
     separator = kwargs.get('separator')
@@ -592,11 +600,11 @@ def _tags(*args, **kwargs):
         suffix = ""
     else:
         suffix = " " + suffix
-    html = ""
+    html = []
     for tag in tags:
-        html += "<a href='" + tag.get('url') + "'>" + tag.get('id') + "</a>" + separator
-    index = html.rfind(separator)
-    html = prefix + html[:index] + html[index+1:] + suffix
+        html.append("<a href='" + tag.get('url') + "'>" + tag.get('name') + "</a>")
+    html = separator.join(html)
+    html = prefix + html + suffix
     return html
 
 
@@ -643,6 +651,7 @@ _ghostpy_ = {
         'log': _log,
         'lookup': _lookup,
         'plural': _plural,
+        'post_class': _post_class,
         'tags': _tags,
         'unless': _unless,
         'url': _url,
