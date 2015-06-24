@@ -620,7 +620,8 @@ _ghostpy_ = {
     },
     'partials': {},
     'theme': 'casper',
-    'blog_dict': {}
+    'blog_dict': {},
+    'context': []
 }
 
 
