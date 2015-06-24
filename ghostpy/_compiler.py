@@ -541,6 +541,9 @@ def _ghost_foot(*args, **kwargs):
     return "<script type='text/javascript' src='public/jquery.js'></script>"
 
 
+def _has(*args, *kwargs):
+    tags = kwargs.get('tag').split(', ')
+    author = kwargs.get('author').split(', ')
 
 def _helperMissing(scope, name, *args):
     if not args:
@@ -588,21 +591,31 @@ def _post_class(*args, **kwargs):
 def _tags(*args, **kwargs):
     tags = args[0].get('tags')
     separator = kwargs.get('separator')
+    autolink = kwargs.get('autolink')
+    prefix = kwargs.get('prefix')
+    suffix = kwargs.get('suffix')
     if separator == None:
         separator = ", "
-    prefix = kwargs.get('prefix')
+
     if prefix == None:
         prefix = ""
     else:
         prefix = prefix + " "
-    suffix = kwargs.get('suffix')
+
     if suffix == None:
         suffix = ""
     else:
         suffix = " " + suffix
+
+    if autolink == None:
+        autolink = "True"
+
     html = []
     for tag in tags:
-        html.append("<a href='" + tag.get('url') + "'>" + tag.get('name') + "</a>")
+        if autolink in ["True", "true"]:
+            html.append("<a href='" + tag.get('url') + "'>" + tag.get('name') + "</a>")
+        elif autolink in ["False", "false"]:
+            html.append(tag.get('name'))
     html = separator.join(html)
     html = prefix + html + suffix
     return html
@@ -646,6 +659,7 @@ _ghostpy_ = {
         'foreach': _for_each,
         'ghost_head': _ghost_head,
         'ghost_foot': _ghost_foot,
+        'has': _has,
         'helperMissing': _helperMissing,
         'if': _if,
         'log': _log,
@@ -660,7 +674,7 @@ _ghostpy_ = {
     'partials': {},
     'theme': 'casper',
     'blog_dict': {},
-    'context': []
+    'context': [],
 }
 
 
