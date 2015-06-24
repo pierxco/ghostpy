@@ -904,6 +904,17 @@ class Compiler:
     def _asset(self, *args, **kwargs):
         return _ghostpy_['theme'] + "/assets/"+args[1]
 
+
+    def _image(self, *args, **kwargs):
+        path = _ghostpy_['theme'] + "/assets/"+args[0].get('image')
+        absolute = False
+        if 'absolute' in kwargs.keys():
+            absolute = kwargs.get('absolute')
+        if absolute:
+            return 'http://localhost:63342/pybars3/' + path
+        else:
+            return path
+
     def __init__(self, theme):
         self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
         self._builder = CodeBuilder()
@@ -980,7 +991,7 @@ class Compiler:
             A template function ready to execute
         """
 
-        _ghostpy_['helpers'].update({"asset": self._asset})
+        _ghostpy_['helpers'].update({"asset": self._asset, "image": self._image})
 
         container = self._generate_code(source)
 
