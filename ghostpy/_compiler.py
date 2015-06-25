@@ -541,9 +541,45 @@ def _ghost_foot(*args, **kwargs):
     return "<script type='text/javascript' src='public/jquery.js'></script>"
 
 
-def _has(*args, *kwargs):
-    tags = kwargs.get('tag').split(', ')
-    author = kwargs.get('author').split(', ')
+def _has(this, options, **kwargs):
+    tag_list_ = kwargs.get('tag')
+    if tag_list_ is not None:
+        tag_list = tag_list_.split(', ')
+    else:
+        tag_list = None
+    author_list_ = kwargs.get('author')
+    if author_list_ is not None:
+        author_list = author_list_.split(', ')
+    else:
+        author_list = None
+    tags_ = this.get('tags')
+    if tags_ is not None:
+        tags = []
+        for tag in tags_:
+            tags.append(tag.get('name'))
+
+    author = this.get('author').get('name')
+
+    tags_ok = False
+    author_ok = False
+
+    if tag_list is not None:
+        for tag in tag_list:
+            if tag in tags:
+                tags_ok = True
+                break
+
+    if author_list is not None:
+        for name in author_list:
+            if name == author:
+                author_ok = True
+                break
+
+    if tags_ok or author_ok:
+        return options['fn'](this)
+    else:
+        return options['inverse'](this)
+
 
 def _helperMissing(scope, name, *args):
     if not args:
