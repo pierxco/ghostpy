@@ -352,7 +352,7 @@ def _author_block(this, options, *args, **kwargs):
     return options['fn'](this)
 
 
-def _blockHelperMissing(this, options, context):
+def _blockHelperMissing(this, options, context, scope):
     if hasattr(context, '__call__'):
         context = context(this)
     if context != u"" and not context:
@@ -362,6 +362,7 @@ def _blockHelperMissing(this, options, context):
     if context is True:
         callwith = this
     else:
+        options['fn'].keywords['scope'] = scope
         callwith = context
     return options['fn'](callwith)
 
@@ -596,6 +597,17 @@ def _if(this, options, context):
         return options['inverse'](this)
 
 
+def _is(this, options, list):
+    context_list_ = list
+    context_list = context_list_.split(', ')
+    context = _ghostpy_.get('context')
+    common = set(context_list) & set(context)
+    count = len(common)
+    if count >= 1:
+        return options['fn'](this)
+    else:
+        return options['inverse'](this)
+
 def _log(this, context):
     ghostpy.log(context)
 
@@ -698,6 +710,7 @@ _ghostpy_ = {
         'has': _has,
         'helperMissing': _helperMissing,
         'if': _if,
+        'is': _is,
         'log': _log,
         'lookup': _lookup,
         'plural': _plural,
@@ -711,6 +724,7 @@ _ghostpy_ = {
     'theme': 'casper',
     'blog_dict': {},
     'context': [],
+    'scope': ''
 }
 
 
@@ -779,6 +793,7 @@ class CodeBuilder:
         if len(self.stack) == 1:
             self._result.grow([
                 u"def render(context, helpers=None, partials=None, root=None):\n"
+                u"    scope = 'root'\n"
                 u"    _helpers = dict(_ghostpy_['helpers'])\n"
                 u"    _partials = dict(_ghostpy_['partials'])\n"
                 u"    if helpers is not None:\n"
@@ -792,7 +807,7 @@ class CodeBuilder:
                 u"        root = context\n"
             ])
         else:
-            self._result.grow(u"def %s(context, helpers, partials, root):\n" % function_name)
+            self._result.grow(u"def %s(context, scope, helpers, partials, root):\n" % function_name)
         self._result.grow(u"    result = strlist()\n")
         self._result.grow(u"    context = ensure_scope(context, root)\n")
 
@@ -827,7 +842,7 @@ class CodeBuilder:
         return result
 
     def _wrap_nested(self, name):
-        return u"partial(%s, helpers=helpers, partials=partials, root=root)" % name
+        return u"partial(%s, scope=scope, helpers=helpers, partials=partials, root=root)" % name
 
     def add_block(self, symbol, arguments, nested, alt_nested):
         name = nested.name
@@ -861,7 +876,7 @@ class CodeBuilder:
             u"    if helper and hasattr(helper, '__call__'):\n"
             u"        value = helper(context, options%s\n" % call,
             u"    else:\n"
-            u"        value = helpers['blockHelperMissing'](context, options, value)\n"
+            u"        value = helpers['blockHelperMissing'](context, options, value, '%s')\n" % symbol,
             u"    result.grow(value or '')\n"
             ])
 
@@ -901,7 +916,7 @@ class CodeBuilder:
                 self._result.grow(u"    value = %s\n" % path)
             self._result.grow([
                 u"    if hasattr(value, '__call__'):\n"
-                u"        value = value(context%s\n" % call,
+                u"        value = value(context, scope%s\n" % call,
                 ])
             if realname:
                 self._result.grow(
