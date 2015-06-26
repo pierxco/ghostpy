@@ -676,9 +676,17 @@ def _unless(this, options, context):
         return options['inverse'](this)
 
 def _url(*args, **kwargs):
-    url = args[0].get('url')
     scope = args[1]
 
+#    if scope is 'author':
+
+    if scope is 'root':
+        route = "/index/"
+
+    if scope is 'post':
+        file = args[0].get('file')
+        route = "/post/" + file
+        print route
 
     if scope != 'author':
         context = _ghostpy_['context']
@@ -689,7 +697,7 @@ def _url(*args, **kwargs):
     absolute = kwargs.get('absolute')
 
     if absolute:
-        url = "http://" + _ghostpy_['uri'] + "/" + path
+        url = _ghostpy_['base'] + route
 
 
     return url
@@ -730,7 +738,7 @@ _ghostpy_ = {
     'blog_dict': {},
     'context': [],
     'scope': '',
-    'uri': ''
+    'base': ''
 }
 
 
