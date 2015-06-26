@@ -697,10 +697,9 @@ def _url(*args, **kwargs):
     absolute = kwargs.get('absolute')
 
     if absolute:
-        url = _ghostpy_['base'] + route
-
-
-    return url
+        return _ghostpy_['base'] + route
+    else:
+        return route
 
 
 def _with(this, options, context):
