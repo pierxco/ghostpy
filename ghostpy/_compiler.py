@@ -676,17 +676,22 @@ def _unless(this, options, context):
         return options['inverse'](this)
 
 def _url(*args, **kwargs):
-    absolute = kwargs.get('absolute')
     url = args[0].get('url')
+    scope = args[1]
+
+
+    if scope != 'author':
+        context = _ghostpy_['context']
+        path = "blah"
+    else:
+        path = "ugh"
+
+    absolute = kwargs.get('absolute')
+
     if absolute:
-        # if post:
-        #
-        # if tag:
-        #
-        # if user:
-        #
-        # if nav:
-        print "Test"
+        url = "http://" + _ghostpy_['uri'] + "/" + path
+
+
     return url
 
 
@@ -724,7 +729,8 @@ _ghostpy_ = {
     'theme': 'casper',
     'blog_dict': {},
     'context': [],
-    'scope': ''
+    'scope': '',
+    'uri': ''
 }
 
 
@@ -991,8 +997,8 @@ class CodeBuilder:
 
         self._result.grow([
             u"    path = '%s'\n" % path,
-            u"    scope = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
-        self._invoke_template("path", "scope")
+            u"    scope_ = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
+        self._invoke_template("path", "scope_")
 
 class Compiler:
 
@@ -1007,7 +1013,7 @@ class Compiler:
     # _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
     def _asset(self, *args, **kwargs):
-        return _ghostpy_['theme'] + "/assets/"+args[1]
+        return _ghostpy_['theme'] + "/assets/"+args[2]
 
 
     def _image(self, *args, **kwargs):
