@@ -6,3 +6,7 @@ MANIFEST
 .idea
 casper/*
 test.py
+blog/*
+openwriter/*
+perfetta/*
+test_url.py

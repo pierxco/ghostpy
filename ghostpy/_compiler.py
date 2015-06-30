@@ -681,59 +681,47 @@ def _unless(this, options, context):
 def _url(*args, **kwargs):
     scope = args[1]
     context = _ghostpy_['context']
+    if kwargs.get('absolute') in ['True', 'true']:
+        absolute = True
     route = ''
     url = ''
 
-    if scope is 'root':
-        route = "/index/"
-
-    if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
-        file = args[0].get('file')
-        route = "/post/" + file
-
-    if scope is 'navigation':
-        route = "<undefined>"
-
-    if scope is 'author':
-        route = "<undefined>"
-
-    if scope is 'tag':
-        route = "<undefined>"
-
     if 'index' in context:
-        prev = '/index'
+        if scope is 'root':
+            route = "/index/"
+
+        if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
+            file = args[0].get('file')
+            route = "post/" + file
+            return route
+
+        if scope is 'navigation':
+            route = "<undefined>"
+
+        if scope is 'author':
+            route = "<undefined>"
+
+        if scope is 'tag':
+            route = "<undefined>"
 
     if 'post' in context:
-        prev = '/post/bid'
+        if scope is 'root':
+            route = "/index/"
+            return route
 
-    if scope != 'author' and route != '<undefined>':
-        prev_arr = prev.split('/')[1:]
-        route_arr = route.split('/')[1:]
+        if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
+            file = args[0].get('file')
+            route = "/post/" + file
+            return file
 
-        same = True
-        for sub in prev_arr:
-            if same:
-                if route_arr[0] == sub:
-                    url += '/.'
-                    route_arr = route_arr[1:]
-                else:
-                    same = False
-                    url += '/..'
-            else:
-                url += '/..'
+        if scope is 'navigation':
+            route = "<undefined>"
 
-        for sub in route_arr:
-            url += '/' + sub
+        if scope is 'author':
+            route = "<undefined>"
 
-    absolute = kwargs.get('absolute')
-
-    if absolute in ['True', 'true']:
-        return _ghostpy_['base'] + url
-    else:
-        if url != '':
-            return url
-        else:
-            return
+        if scope is 'tag':
+            route = "<undefined>"
 
 
 

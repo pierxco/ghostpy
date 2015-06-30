@@ -1,4 +1,3 @@
-import helpers
 from ghostpy import Compiler
 from ghostpy._compiler import _ghostpy_
 
