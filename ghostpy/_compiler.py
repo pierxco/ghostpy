@@ -691,7 +691,7 @@ def _url(*args, **kwargs):
         if scope is 'root':
             route = "/index/"
 
-        if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
+        if scope is 'post' or scope is 'next_post' or scope is 'prev_post' or scope is 'posts':
             file = args[0].get('file')
             route = "post/" + file
             return route
