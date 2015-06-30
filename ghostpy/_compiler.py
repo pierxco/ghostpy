@@ -728,10 +728,10 @@ def _url(*args, **kwargs):
     absolute = kwargs.get('absolute')
 
     if absolute in ['True', 'true']:
-        return _ghostpy_['base'] + route
+        return _ghostpy_['base'] + url
     else:
-        if route != '':
-            return route
+        if url != '':
+            return url
         else:
             return
 
