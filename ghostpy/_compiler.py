@@ -682,6 +682,7 @@ def _url(*args, **kwargs):
     scope = args[1]
     context = _ghostpy_['context']
     route = ''
+    url = ''
 
     if scope is 'root':
         route = "/index/"
@@ -709,7 +710,6 @@ def _url(*args, **kwargs):
         prev_arr = prev.split('/')[1:]
         route_arr = route.split('/')[1:]
 
-        url = ''
         same = True
         for sub in prev_arr:
             if same:
