@@ -31,7 +31,7 @@ def parse_blog(posts):
         }],
         'next_post': {
             'title': next.get('title'),
-            'excerpt':  next.get('content'),
+            'content':  next.get('content'),
             'file': next.get('file'),
             'date': next.get('date'),
                 'author': {
@@ -44,7 +44,7 @@ def parse_blog(posts):
         },
         'prev_post': {
             'title': prev.get('title'),
-            'excerpt':  prev.get('content'),
+            'content':  prev.get('content'),
             'file': prev.get('file'),
             'date': prev.get('date'),
             'author': {
