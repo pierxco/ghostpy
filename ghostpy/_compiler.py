@@ -149,7 +149,7 @@ invertedblock ::= [ "invertedblock" <anything>:symbol [<arg>*:arguments] [<compi
 partial ::= ["partial" <anything>:symbol [<arg>*:arguments]] => builder.add_partial(symbol, arguments)
 path ::= [ "path" [<pathseg>:segment]] => ("simple", segment)
  | [ "path" [<pathseg>+:segments] ] => ("complex", u"resolve(context, '"  + u"', '".join(segments) + u"')" )
-complexarg ::= [ "path" [<pathseg>+:segments] ] => u"resolve(context, '"  + u"', '".join(segments) + u"')"
+complexarg ::= [ "path" [<pathseg>+:segments] ] => ([u"resolve(context, '"  + u"', '".join(segments) + u"')"], segments)
     | [ "subexpr" ["path" <pathseg>:name] [<arg>*:arguments] ] => u'resolve_subexpr(helpers, "' + name + '", context' + (u', ' + u', '.join(arguments) if arguments else u'') + u')'
     | [ "literalparam" <anything>:value ] => {str_class}(value)
 arg ::= [ "kwparam" <anything>:symbol <complexarg>:a ] => {str_class}(symbol) + '=' + a
@@ -362,6 +362,7 @@ def _blockHelperMissing(this, options, context, scope):
     if context is True:
         callwith = this
     else:
+        _ghostpy_['scope'] = scope
         options['fn'].keywords['scope'] = scope
         callwith = context
     return options['fn'](callwith)
@@ -496,7 +497,7 @@ def _excerpt(this, *args, **kwargs):
     return excerpt
 
 
-def _for_each(this, options, context):
+def _for_each(this, options, context, scope):
     result = strlist()
 
     # All sequences in python have a length
@@ -526,8 +527,10 @@ def _for_each(this, options, context):
             kwargs['key'] = value
             value = context[value]
 
-        scope = Scope(value, this, options['root'], **kwargs)
-        result.grow(options['fn'](scope))
+        scope_ = Scope(value, this, options['root'], **kwargs)
+        _ghostpy_['scope'] = scope
+        options['fn'].keywords['scope'] = scope
+        result.grow(options['fn'](scope_))
 
         index += 1
 
@@ -677,29 +680,61 @@ def _unless(this, options, context):
 
 def _url(*args, **kwargs):
     scope = args[1]
-
-#    if scope is 'author':
+    context = _ghostpy_['context']
+    route = ''
 
     if scope is 'root':
         route = "/index/"
 
-    if scope is 'post':
+    if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
         file = args[0].get('file')
         route = "/post/" + file
-        print route
 
-    if scope != 'author':
-        context = _ghostpy_['context']
-        path = "blah"
-    else:
-        path = "ugh"
+    if scope is 'navigation':
+        route = "<undefined>"
+
+    if scope is 'author':
+        route = "<undefined>"
+
+    if scope is 'tag':
+        route = "<undefined>"
+
+    if 'index' in context:
+        prev = '/index'
+
+    if 'post' in context:
+        prev = '/post/bid'
+
+    if scope != 'author' and route != '<undefined>':
+        prev_arr = prev.split('/')[1:]
+        route_arr = route.split('/')[1:]
+
+        url = ''
+        same = True
+        for sub in prev_arr:
+            if same:
+                if route_arr[0] == sub:
+                    url += '/.'
+                    route_arr = route_arr[1:]
+                else:
+                    same = False
+                    url += '/..'
+            else:
+                url += '/..'
+
+        for sub in route_arr:
+            url += '/' + sub
 
     absolute = kwargs.get('absolute')
 
-    if absolute:
+    if absolute in ['True', 'true']:
         return _ghostpy_['base'] + route
     else:
-        return route
+        if route != '':
+            return route
+        else:
+            return
+
 
 
 def _with(this, options, context):
@@ -736,7 +771,8 @@ _ghostpy_ = {
     'theme': 'casper',
     'blog_dict': {},
     'context': [],
-    'scope': '',
+    'scope': None,
+    'root': None,
     'base': ''
 }
 
@@ -806,7 +842,15 @@ class CodeBuilder:
         if len(self.stack) == 1:
             self._result.grow([
                 u"def render(context, helpers=None, partials=None, root=None):\n"
-                u"    scope = 'root'\n"
+                u"    if _ghostpy_['scope'] is None:\n"
+                u"        scope = 'root'\n"
+                u"    else:\n"
+                u"        scope = _ghostpy_['scope']\n"
+                u"    if _ghostpy_['root'] is None:\n"
+                u"        _ghostpy_['root'] = context\n"
+                u"        root = context\n"
+                u"    else:\n"
+                u"        root = _ghostpy_['root']\n"
                 u"    _helpers = dict(_ghostpy_['helpers'])\n"
                 u"    _partials = dict(_ghostpy_['partials'])\n"
                 u"    if helpers is not None:\n"
@@ -831,7 +875,7 @@ class CodeBuilder:
         if len(self.stack) == 0:
             self._result.grow(u"    if called:\n")
             self._result.grow(u"        result = %s(result)\n" % str_class.__name__)
-        self._result.grow(u"    return result\n")
+        self._result.grow(u"    return %s(result)\n" % str_class.__name__)
 
         source = str_class(u"".join(lines))
 
@@ -857,7 +901,11 @@ class CodeBuilder:
     def _wrap_nested(self, name):
         return u"partial(%s, scope=scope, helpers=helpers, partials=partials, root=root)" % name
 
-    def add_block(self, symbol, arguments, nested, alt_nested):
+    def add_block(self, symbol, arguments_, nested, alt_nested):
+        if len(arguments_) > 0 and type(arguments_[0]) is tuple:
+            (arguments, scope) = arguments_[0]
+        else:
+            arguments = arguments_
         name = nested.name
         self._locals[name] = nested
 
@@ -882,16 +930,23 @@ class CodeBuilder:
             self._result.grow([
                 u"    options['inverse'] = lambda this: None\n"
                 ])
-        self._result.grow([
-            u"    value = helper = helpers.get('%s')\n" % symbol,
-            u"    if value is None:\n"
-            u"        value = resolve(context, '%s')\n" % symbol,
-            u"    if helper and hasattr(helper, '__call__'):\n"
-            u"        value = helper(context, options%s\n" % call,
-            u"    else:\n"
-            u"        value = helpers['blockHelperMissing'](context, options, value, '%s')\n" % symbol,
-            u"    result.grow(value or '')\n"
-            ])
+        if symbol == 'foreach' or symbol == 'each':
+            self._result.grow([
+                u"    value = resolve(context, '%s')\n" % scope[0],
+                u"    value = helpers['%s'](context, options, value, '%s')\n" % (symbol, scope[0]),
+                u"    result.grow(value or '')\n"
+                ])
+        else:
+            self._result.grow([
+                u"    value = helper = helpers.get('%s')\n" % symbol,
+                u"    if value is None:\n"
+                u"        value = resolve(context, '%s')\n" % symbol,
+                u"    if helper and hasattr(helper, '__call__'):\n"
+                u"        value = helper(context, options%s\n" % call,
+                u"    else:\n"
+                u"        value = helpers['blockHelperMissing'](context, options, value, '%s')\n" % symbol,
+                u"    result.grow(value or '')\n"
+                ])
 
     def add_literal(self, value):
         self._result.grow(u"    result.append(%s)\n" % repr(value))
@@ -938,7 +993,11 @@ class CodeBuilder:
                         % (realname, call)
                     )
 
-    def add_escaped_expand(self, path_type_path, arguments):
+    def add_escaped_expand(self, path_type_path, arguments_):
+        if len(arguments_) > 0 and type(arguments_[0]) == tuple:
+            (arguments, scope) = arguments_[0]
+        else:
+            arguments = arguments_
         (path_type, path) = path_type_path
         call = self.arguments_to_call(arguments)
         self.find_lookup(path, path_type, call)
@@ -1001,11 +1060,18 @@ class CodeBuilder:
                 overrides_literal += u'"%s": %s, ' % (key, overrides[key])
             overrides_literal += u'}'
         self._result.grow([u"    overrides = %s\n" % overrides_literal])
-
-        self._result.grow([
-            u"    path = '%s'\n" % path,
-            u"    scope_ = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
-        self._invoke_template("path", "scope_")
+        self._result.grow([u"    path = '%s'\n" % path])
+        if symbol is "navigation":
+            self._result.grow([
+                u"    _ghostpy_['scope'] = 'root'\n"
+                u"    scope_ = Scope(root, context, root, overrides=overrides)\n"])
+            self._invoke_template("path", "scope_")
+            self._result.grow([
+                u"    _ghostpy_['scope'] = scope\n"
+            ])
+        else:
+            self._result.grow([u"    scope_ = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
+            self._invoke_template("path", "scope_")
 
 class Compiler:
 
