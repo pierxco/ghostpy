@@ -681,6 +681,7 @@ def _unless(this, options, context):
 def _url(*args, **kwargs):
     scope = args[1]
     context = _ghostpy_['context']
+    absolute = False
     if kwargs.get('absolute') in ['True', 'true']:
         absolute = True
     route = ''
@@ -711,8 +712,9 @@ def _url(*args, **kwargs):
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
             file = args[0].get('file')
-            route = "/post/" + file
-            return file
+            if absolute:
+                return _ghostpy_['base']+"/post/"+file
+            else: return file
 
         if scope is 'navigation':
             route = "<undefined>"
