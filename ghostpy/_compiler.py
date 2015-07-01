@@ -689,12 +689,11 @@ def _url(*args, **kwargs):
 
     if 'index' in context:
         if scope is 'root':
-            route = "index/"
+            route = "../"
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post' or scope is 'posts':
             file = args[0].get('file')
             route = "post/" + file
-            return route
 
         if scope is 'navigation':
             route = "<undefined>"
@@ -707,13 +706,12 @@ def _url(*args, **kwargs):
 
     if 'post' in context:
         if scope is 'root':
-            route = "index/"
-            return route
+            route = "../"
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
             file = args[0].get('file')
             if absolute:
-                return _ghostpy_['base']+"/post/"+file
+                route = _ghostpy_['base']+"/post/"+file
             else: return file
 
         if scope is 'navigation':
@@ -725,6 +723,7 @@ def _url(*args, **kwargs):
         if scope is 'tag':
             route = "<undefined>"
 
+    return route
 
 
 def _with(this, options, context):
