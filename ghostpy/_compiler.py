@@ -148,7 +148,7 @@ escapedexpand ::= [ "escapedexpand" <path>:value [<arg>*:arguments]] => builder.
 invertedblock ::= [ "invertedblock" <anything>:symbol [<arg>*:arguments] [<compile>:t] ] => builder.add_invertedblock(symbol, arguments, t)
 partial ::= ["partial" <anything>:symbol [<arg>*:arguments]] => builder.add_partial(symbol, arguments)
 path ::= [ "path" [<pathseg>:segment]] => ("simple", segment)
- | [ "path" [<pathseg>+:segments] ] => ("complex", u"resolve(context, '"  + u"', '".join(segments) + u"')" )
+ | [ "path" [<pathseg>+:segments] ] => ("complex", segments)
 complexarg ::= [ "path" [<pathseg>+:segments] ] => ([u"resolve(context, '"  + u"', '".join(segments) + u"')"], segments)
     | [ "subexpr" ["path" <pathseg>:name] [<arg>*:arguments] ] => u'resolve_subexpr(helpers, "' + name + '", context' + (u', ' + u', '.join(arguments) if arguments else u'') + u')'
     | [ "literalparam" <anything>:value ] => {str_class}(value)
@@ -953,7 +953,7 @@ class CodeBuilder:
             output = u', ' + output
         return output
 
-    def find_lookup(self, path, path_type, call):
+    def find_lookup(self, path, path_type, call, segments=None):
         if path == "navigation":
             self.add_partial("navigation", [])
         else:
@@ -971,7 +971,17 @@ class CodeBuilder:
                     ])
             else:
                 realname = None
-                self._result.grow(u"    value = %s\n" % path)
+                self._result.grow([
+                    u"    value = helpers.get('%s')\n" % segments[-1],
+                    u"    print %s\n" % segments,
+                    u"    segments = %s\n" % str(segments),
+                    # u"    import pdb; pdb.set_trace()\n",
+                    u"    scope = '%s'\n" % segments[-2],
+                    u"    if scope == '@blog':\n"
+                    u"        scope = 'root'\n"
+                    u"    if value is None:\n",
+                    u"        value = %s\n" % path
+                ])
             self._result.grow([
                 u"    if hasattr(value, '__call__'):\n"
                 u"        value = value(context, scope%s\n" % call,
@@ -989,8 +999,12 @@ class CodeBuilder:
         else:
             arguments = arguments_
         (path_type, path) = path_type_path
+        segments = None
+        if path_type is 'complex':
+            segments = filter(lambda a: a != '', path)
+            path = u"resolve(context, '"  + u"', '".join(segments) + u"')"
         call = self.arguments_to_call(arguments)
-        self.find_lookup(path, path_type, call)
+        self.find_lookup(path, path_type, call, segments=segments)
         if path != "navigation":
             self._result.grow([
                 u"    result.grow(prepare(value, True))\n"
