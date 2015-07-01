@@ -970,6 +970,8 @@ class CodeBuilder:
                     u"    value = helpers.get('%s')\n" % realname,
                     u"    if value is None:\n"
                     u"        value = resolve(context, '%s')\n" % path,
+                    u"    if hasattr(value, '__call__'):\n"
+                    u"        value = value(context, scope%s\n" % call,
                     ])
             else:
                 realname = None
@@ -977,12 +979,14 @@ class CodeBuilder:
                     u"    value = helpers.get('%s')\n" % segments[-1],
                     u"    print %s\n" % segments,
                     u"    segments = %s\n" % str(segments),
-                    # u"    import pdb; pdb.set_trace()\n",
                     u"    scope = '%s'\n" % segments[-2],
                     u"    if scope == '@blog':\n"
                     u"        scope = 'root'\n"
                     u"    if value is None:\n",
-                    u"        value = %s\n" % path
+                    u"        value = %s\n" % path,
+                    u"    if hasattr(value, '__call__'):\n"
+                    u"        context_ = resolve(context, '"  + u"', '".join(segments[:-1]) + u"')\n",
+                    u"        value = value(context_, scope%s\n" % call,
                 ])
             self._result.grow([
                 u"    if hasattr(value, '__call__'):\n"
