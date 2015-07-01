@@ -637,7 +637,7 @@ def _post_class(*args, **kwargs):
         classes.append("featured")
     tags = args[0].get('tags')
     if tags is not None:
-        for tag in args[0].get('tags'):
+        for tag in tags:
             classes.append("tag-" + tag.get('id'))
     return " ".join(classes)
 
@@ -664,11 +664,12 @@ def _tags(*args, **kwargs):
         autolink = "True"
 
     html = []
-    for tag in tags:
-        if autolink in ["True", "true"]:
-            html.append("<a href='" + tag.get('url') + "'>" + tag.get('name') + "</a>")
-        elif autolink in ["False", "false"]:
-            html.append(tag.get('name'))
+    if tags is not None:
+        for tag in tags:
+            if autolink in ["True", "true"]:
+                html.append("<a href='" + tag.get('url') + "'>" + tag.get('name') + "</a>")
+            elif autolink in ["False", "false"]:
+                html.append(tag.get('name'))
     html = separator.join(html)
     html = prefix + html + suffix
     return html
