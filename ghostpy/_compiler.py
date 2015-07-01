@@ -635,8 +635,10 @@ def _post_class(*args, **kwargs):
     classes = ["post"]
     if args[0].get('featured'):
         classes.append("featured")
-    for tag in args[0].get('tags'):
-        classes.append("tag-" + tag.get('id'))
+    tags = args[0].get('tags')
+    if tags is not None:
+        for tag in args[0].get('tags'):
+            classes.append("tag-" + tag.get('id'))
     return " ".join(classes)
 
 def _tags(*args, **kwargs):
