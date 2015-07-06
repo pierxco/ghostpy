@@ -709,13 +709,13 @@ def _url(*args, **kwargs):
 
     if 'post' in context:
         if scope is 'root':
-            route = "../"
+            route = "../.."
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
             file = args[0].get('file')
             if absolute:
                 route = _ghostpy_['base']+"/post/"+file
-            else: return file
+            else: return "../" + file
 
         if scope is 'navigation':
             route = "<undefined>"
@@ -1008,7 +1008,7 @@ class CodeBuilder:
         segments = None
         if path_type is 'complex':
             segments = filter(lambda a: a != '', path)
-            path = u"resolve(context, '"  + u"', '".join(segments) + u"')"
+            path = u"resolve(context, '" + u"', '".join(segments) + u"')"
         call = self.arguments_to_call(arguments)
         self.find_lookup(path, path_type, call, segments=segments)
         if path != "navigation":
