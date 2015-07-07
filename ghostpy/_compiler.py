@@ -768,6 +768,41 @@ _ghostpy_ = {
     'base': ''
 }
 
+def reset(self):
+    return {
+        'helpers': {
+            '_author': _author,
+            'blockHelperMissing': _blockHelperMissing,
+            'content': _content,
+            'date': _date,
+            'each': _each,
+            'encode': _encode,
+            'excerpt': _excerpt,
+            'foreach': _for_each,
+            'ghost_head': _ghost_head,
+            'ghost_foot': _ghost_foot,
+            'has': _has,
+            'helperMissing': _helperMissing,
+            'if': _if,
+            'is': _is,
+            'log': _log,
+            'lookup': _lookup,
+            'plural': _plural,
+            'post_class': _post_class,
+            'tags': _tags,
+            'unless': _unless,
+            'url': _url,
+            'with': _with
+        },
+        'partials': {},
+        'theme': 'casper',
+        'blog_dict': {},
+        'context': [],
+        'scope': None,
+        'root': None,
+        'base': ''
+    }
+
 
 class FunctionContainer:
 
@@ -1298,38 +1333,3 @@ class Compiler:
                 self.clean_whitespace(child_tree)
 
             pointer += 1
-
-    def reset(self):
-        return {
-            'helpers': {
-                '_author': _author,
-                'blockHelperMissing': _blockHelperMissing,
-                'content': _content,
-                'date': _date,
-                'each': _each,
-                'encode': _encode,
-                'excerpt': _excerpt,
-                'foreach': _for_each,
-                'ghost_head': _ghost_head,
-                'ghost_foot': _ghost_foot,
-                'has': _has,
-                'helperMissing': _helperMissing,
-                'if': _if,
-                'is': _is,
-                'log': _log,
-                'lookup': _lookup,
-                'plural': _plural,
-                'post_class': _post_class,
-                'tags': _tags,
-                'unless': _unless,
-                'url': _url,
-                'with': _with
-            },
-            'partials': {},
-            'theme': 'casper',
-            'blog_dict': {},
-            'context': [],
-            'scope': None,
-            'root': None,
-            'base': ''
-        }
