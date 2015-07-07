@@ -36,6 +36,7 @@ from collections import OrderedDict
 from BeautifulSoup import BeautifulSoup
 
 import ghostpy
+import copy
 import ghostpy._templates
 from pymeta.grammar import OMeta
 
@@ -768,7 +769,7 @@ _ghostpy_defaults = {
     'base': ''
 }
 
-_ghostpy_ = _ghostpy_defaults
+_ghostpy_ = copy.deepcopy(_ghostpy_defaults)
 
 def reset():
     return _ghostpy_defaults
