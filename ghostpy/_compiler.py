@@ -768,7 +768,7 @@ _ghostpy_ = {
     'base': ''
 }
 
-def reset(self):
+def reset():
     return {
         'helpers': {
             '_author': _author,
