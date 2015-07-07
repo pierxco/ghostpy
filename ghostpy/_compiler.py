@@ -1300,7 +1300,7 @@ class Compiler:
             pointer += 1
 
     def reset(self):
-        _ghostpy_ = {
+        return {
             'helpers': {
                 '_author': _author,
                 'blockHelperMissing': _blockHelperMissing,
