@@ -734,7 +734,7 @@ def _with(this, options, context):
 
 
 # scope for the compiled code to reuse globals
-_ghostpy_ = {
+_ghostpy_defaults = {
     'helpers': {
         '_author': _author,
         'blockHelperMissing': _blockHelperMissing,
@@ -768,40 +768,10 @@ _ghostpy_ = {
     'base': ''
 }
 
+_ghostpy_ = _ghostpy_defaults
+
 def reset():
-    return {
-        'helpers': {
-            '_author': _author,
-            'blockHelperMissing': _blockHelperMissing,
-            'content': _content,
-            'date': _date,
-            'each': _each,
-            'encode': _encode,
-            'excerpt': _excerpt,
-            'foreach': _for_each,
-            'ghost_head': _ghost_head,
-            'ghost_foot': _ghost_foot,
-            'has': _has,
-            'helperMissing': _helperMissing,
-            'if': _if,
-            'is': _is,
-            'log': _log,
-            'lookup': _lookup,
-            'plural': _plural,
-            'post_class': _post_class,
-            'tags': _tags,
-            'unless': _unless,
-            'url': _url,
-            'with': _with
-        },
-        'partials': {},
-        'theme': 'casper',
-        'blog_dict': {},
-        'context': [],
-        'scope': None,
-        'root': None,
-        'base': ''
-    }
+    return _ghostpy_defaults
 
 
 class FunctionContainer:
