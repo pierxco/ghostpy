@@ -233,7 +233,7 @@ sentinel = object()
 
 class Scope:
 
-    def __init__(self, context, parent, root, overrides=None, index=None, key=None, first=None, last=None):
+    def __init__(self, context, parent, root, overrides=None, index=None, key=None, first=None, last=None, columns=None):
         self.context = context
         self.parent = parent
         self.root = root
@@ -243,6 +243,7 @@ class Scope:
         self.key = key
         self.first = first
         self.last = last
+        self.columns = columns
 
     def get(self, name, default=None):
         if name == '@blog':
@@ -257,6 +258,14 @@ class Scope:
             return self.first
         if name == '@last' and self.last is not None:
             return self.last
+        if name == '@odd' and self.index is not None:
+            return (self.index % 2 == 0)
+        if name == '@even' and self.index is not None:
+            return (self.index % 2 == 1)
+        if name == '@rowStart' and self.columns is not None and self.index is not None:
+            return (self.index % self.columns == 0)
+        if name == '@rowEnd' and self.columns is not None and self.index is not None:
+            return (self.index % self.columns == (self.columns - 1))
         if name == 'this':
             return self.context
         if self.overrides and name in self.overrides:
@@ -498,8 +507,11 @@ def _excerpt(this, *args, **kwargs):
     return excerpt
 
 
-def _for_each(this, options, context, scope):
+def _for_each(this, options, context, scope, columns=None):
     result = strlist()
+
+    if columns is not None:
+        columns = int(columns)
 
     # All sequences in python have a length
     try:
@@ -521,7 +533,8 @@ def _for_each(this, options, context, scope):
         kwargs = {
             'index': index,
             'first': index == 0,
-            'last': index == last_index
+            'last': index == last_index,
+            'columns': columns
         }
 
         if has_keys:
@@ -929,11 +942,14 @@ class CodeBuilder:
                 u"    options['inverse'] = lambda this: None\n"
                 ])
         if symbol == 'foreach' or symbol == 'each':
+            if len(arguments_) == 2:
+                (key, value) = tuple(arguments_[1].split('='))
+                assert key == 'columns'
             self._result.grow([
                 u"    value = resolve(context, '%s')\n" % scope[0],
-                u"    value = helpers['%s'](context, options, value, '%s')\n" % (symbol, scope[0]),
+                u"    value = helpers['%s'](context, options, value, '%s', columns=%s)\n" % (symbol, scope[0], value),
                 u"    result.grow(value or '')\n"
-                ])
+            ])
         else:
             self._result.grow([
                 u"    value = helper = helpers.get('%s')\n" % symbol,
