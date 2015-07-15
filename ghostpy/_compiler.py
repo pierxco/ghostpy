@@ -34,6 +34,7 @@ from datetime import datetime
 from urllib import quote
 from collections import OrderedDict
 from BeautifulSoup import BeautifulSoup
+import os.path
 
 import ghostpy
 import copy
@@ -785,7 +786,7 @@ _ghostpy_defaults = {
 _ghostpy_ = copy.deepcopy(_ghostpy_defaults)
 
 def reset():
-    return _ghostpy_defaults
+    return copy.deepcopy(_ghostpy_defaults)
 
 
 class FunctionContainer:
@@ -800,6 +801,7 @@ class FunctionContainer:
 
     @property
     def full_code(self):
+        nav_default = '<ul class="nav">{{#foreach navigation}}<li class="nav-{{slug}}{{#if current}} nav-current{{/if}}" role="presentation"><a href="{{url absolute="true"}}">{{label}}</a></li>{{/foreach}}</ul>'
         headers = (
             u'import ghostpy\n'
             u'\n'
@@ -814,14 +816,17 @@ class FunctionContainer:
             u'\n'
             u'def _partial(path, context, helpers, partials, root):\n'
             u"    compiler = Compiler(_ghostpy_['theme'])\n"
-            u"    with open(path) as hbs:\n"
-            u"        source = hbs.read().decode('unicode-escape')\n"
+            u"    if path != 'navigation':\n"
+            u"        with open(path) as hbs:\n"
+            u"            source = hbs.read().decode('unicode-escape')\n"
+            u"    else:\n"
+            u"        source = u'%s'\n"
             u"    template = compiler.compile(source)\n"
             u"    output = template(context)\n"
             u"    return output\n"
             u'\n'
             u'\n'
-        ) % (repr(ghostpy.__version__), ghostpy.__version__)
+        ) % (repr(ghostpy.__version__), ghostpy.__version__, nav_default)
 
         return headers + self.code
 
@@ -1069,7 +1074,10 @@ class CodeBuilder:
     def add_partial(self, symbol, arguments):
         arg = ""
 
-        path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
+        if symbol == "navigation" and not os.path.isfile(_ghostpy_['theme'] + "/partials/navigation.hbs"):
+            path = "navigation"
+        else:
+            path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
 
         overrides = None
         positional_args = 0
