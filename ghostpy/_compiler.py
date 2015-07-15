@@ -945,6 +945,8 @@ class CodeBuilder:
             if len(arguments_) == 2:
                 (key, value) = tuple(arguments_[1].split('='))
                 assert key == 'columns'
+            else:
+                value = "None"
             self._result.grow([
                 u"    value = resolve(context, '%s')\n" % scope[0],
                 u"    value = helpers['%s'](context, options, value, '%s', columns=%s)\n" % (symbol, scope[0], value),
