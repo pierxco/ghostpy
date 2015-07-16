@@ -711,11 +711,11 @@ def _url(*args, **kwargs):
 
     if 'index' in context:
         if scope is 'root':
-            route = "../"
+            route = "./"
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post' or scope is 'posts':
             file = args[0].get('file')
-            route = "post/" + file
+            route = "../post/" + file
 
         if scope is 'navigation':
             route = "<undefined>"
@@ -728,7 +728,7 @@ def _url(*args, **kwargs):
 
     if 'post' in context:
         if scope is 'root':
-            route = "../.."
+            route = "../../1/"
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
             file = args[0].get('file')
