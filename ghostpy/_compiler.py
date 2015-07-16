@@ -637,6 +637,10 @@ def _lookup(this, context, key):
         return
 
 
+def _page_url(*args, **kwargs):
+    return "URL"
+
+
 def _plural(*args, **kwargs):
     if args[1] == 0:
         return kwargs.get("empty")
@@ -767,6 +771,7 @@ _ghostpy_defaults = {
         'is': _is,
         'log': _log,
         'lookup': _lookup,
+        'page_url': _page_url,
         'plural': _plural,
         'post_class': _post_class,
         'tags': _tags,
@@ -802,6 +807,7 @@ class FunctionContainer:
     @property
     def full_code(self):
         nav_default = '<ul class="nav">{{#foreach navigation}}<li class="nav-{{slug}}{{#if current}} nav-current{{/if}}" role="presentation"><a href="{{url absolute="true"}}">{{label}}</a></li>{{/foreach}}</ul>'
+        pag_default = '<nav class="pagination" role="navigation">{{#if prev}}<a class="newer-posts" href="{{page_url prev}}">&larr; Newer Posts</a>{{/if}}<span class="page-number">Page {{page}} of {{pages}}</span>{{#if next}}<a class="older-posts" href="{{page_url next}}">Older Posts &rarr;</a>{{/if}}</nav>'
         headers = (
             u'import ghostpy\n'
             u'\n'
@@ -816,17 +822,20 @@ class FunctionContainer:
             u'\n'
             u'def _partial(path, context, helpers, partials, root):\n'
             u"    compiler = Compiler(_ghostpy_['theme'])\n"
-            u"    if path != 'navigation':\n"
+            u"    if path != 'navigation' and path != 'pagination':\n"
             u"        with open(path) as hbs:\n"
             u"            source = hbs.read().decode('unicode-escape')\n"
-            u"    else:\n"
+            u"    elif path == 'navigation':\n"
             u"        source = u'%s'\n"
+            u"    elif path == 'pagination':\n"
+            u"        source = u'%s'\n"
+            # u"    import pdb; pdb.set_trace()\n"
             u"    template = compiler.compile(source)\n"
             u"    output = template(context)\n"
             u"    return output\n"
             u'\n'
             u'\n'
-        ) % (repr(ghostpy.__version__), ghostpy.__version__, nav_default)
+        ) % (repr(ghostpy.__version__), ghostpy.__version__, nav_default, pag_default)
 
         return headers + self.code
 
@@ -985,8 +994,8 @@ class CodeBuilder:
         return output
 
     def find_lookup(self, path, path_type, call, segments=None):
-        if path == "navigation":
-            self.add_partial("navigation", [])
+        if path == "navigation" or path == "pagination":
+            self.add_partial(path, [])
         else:
             if path == "author":
                 path = "_author"
@@ -1039,7 +1048,7 @@ class CodeBuilder:
             path = u"resolve(context, '" + u"', '".join(segments) + u"')"
         call = self.arguments_to_call(arguments)
         self.find_lookup(path, path_type, call, segments=segments)
-        if path != "navigation":
+        if path != "navigation" and path != "pagination":
             self._result.grow([
                 u"    result.grow(prepare(value, True))\n"
                 ])
@@ -1074,8 +1083,8 @@ class CodeBuilder:
     def add_partial(self, symbol, arguments):
         arg = ""
 
-        if symbol == "navigation" and not os.path.isfile(_ghostpy_['theme'] + "/partials/navigation.hbs"):
-            path = "navigation"
+        if symbol == "navigation" or symbol == "pagination" and not os.path.isfile(_ghostpy_['theme'] + "/partials/" + symbol + ".hbs"):
+            path = symbol
         else:
             path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
 
@@ -1102,16 +1111,19 @@ class CodeBuilder:
             overrides_literal += u'}'
         self._result.grow([u"    overrides = %s\n" % overrides_literal])
         self._result.grow([u"    path = '%s'\n" % path])
-        if symbol is "navigation":
+        if symbol == "pagination":
             self._result.grow([
-                u"    _ghostpy_['scope'] = 'root'\n"
-                u"    scope_ = Scope(root, context, root, overrides=overrides)\n"])
+                # u"    import pdb; pdb.set_trace()\n"
+                u"    _ghostpy_['scope'] = 'pagination'\n"
+                u"    scope_ = Scope(context['pagination'], context, root, overrides=overrides)\n"])
             self._invoke_template("path", "scope_")
             self._result.grow([
                 u"    _ghostpy_['scope'] = scope\n"
             ])
         else:
-            self._result.grow([u"    scope_ = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
+            self._result.grow([
+                # u"    import pdb; pdb.set_trace()\n"
+                u"    scope_ = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
             self._invoke_template("path", "scope_")
 
 class Compiler:
