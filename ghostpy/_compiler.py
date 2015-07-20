@@ -638,7 +638,7 @@ def _lookup(this, context, key):
 
 
 def _page_url(*args, **kwargs):
-    return "URL"
+    return "../" + str(args[2])
 
 
 def _plural(*args, **kwargs):
