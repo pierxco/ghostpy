@@ -422,7 +422,11 @@ def _content(*args, **kwargs):
 
 def _date(*args, **kwargs):
     date_ = args[0].get('date')
-    date = datetime.strptime(date_, '%Y-%m-%d')
+    if date_ is None:
+        date = datetime.today()
+    else:
+        date_ = " ".join(date_.split(" ")[:-2])
+        date = datetime.strptime(date_, '%a %b %d %Y %X')
     format = kwargs.get('format')
     dict = OrderedDict([
         ("YYYY", "%Y"),
