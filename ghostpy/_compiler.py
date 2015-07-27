@@ -642,7 +642,10 @@ def _lookup(this, context, key):
 
 
 def _page_url(*args, **kwargs):
-    return "../" + str(args[2])
+    if args[0]['page'] is 1:
+        return "./" + str(args[2])
+    else:
+        return "../" + str(args[2])
 
 
 def _plural(*args, **kwargs):
@@ -715,11 +718,17 @@ def _url(*args, **kwargs):
 
     if 'index' in context:
         if scope is 'root':
-            route = "./"
+            if _ghostpy_['root']['pagination']['page'] is 1:
+                route = "./"
+            else:
+                route = "../"
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post' or scope is 'posts':
             file = args[0].get('file')
-            route = "../post/" + file
+            if _ghostpy_['root']['pagination']['page'] is 1:
+                route = "./post/" + file
+            else:
+                route = "../post/" + file
 
         if scope is 'navigation':
             route = "<undefined>"
@@ -732,7 +741,7 @@ def _url(*args, **kwargs):
 
     if 'post' in context:
         if scope is 'root':
-            route = "../../1/"
+            route = "../../"
 
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
             file = args[0].get('file')
