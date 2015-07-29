@@ -388,36 +388,49 @@ def _content(*args, **kwargs):
         s=words[:int(kwargs.get('words'))]
 
         temp=input_string
-        k=s.count(s[-1])
+        k=' '.join(s).count(s[-1])
         i=1
         j=0
+        l=0
         while i<=k:
-            j+=temp.find(s[-1])
-            temp=temp[j+len(s[-1]):]
+            l = temp.find(s[-1])
+            j+=l +len(s[-1])
+            temp=temp[l+len(s[-1]):]
             i+=1
-        output_string=input_string[:j+len(s[-1])]
+        # output_string=input_string[:j+len(s[-1])]
+        output_string=input_string[:j]
         content = BeautifulSoup(output_string)
     elif kwargs.get('characters') is not None:
         input_string=args[0].get('content')
         p = re.compile(r'<[^<]*?>')
         stripped = p.sub('', input_string)
-        chars = list(stripped[:int(kwargs.get('characters'))])
-        s = filter(lambda a: a != '', chars)
+        # chars = list(stripped[:int(kwargs.get('characters'))])
+        # s = filter(lambda a: a != '', chars)
+        i = int(kwargs.get('characters'))
+        if stripped[i-1] == ' ':
+            end = i
+        else:
+            end = i + stripped[i:].index(' ')
+        s = stripped[:end].split(' ')
+        s = filter(lambda a: a != '', s)
 
-        temp = input_string
-        k=s.count(s[-1])
+        temp=input_string
+        k=' '.join(s).count(s[-1])
         i=1
         j=0
+        l=0
         while i<=k:
-            j+=temp.find(s[-1])
-            temp=temp[j+len(s[-1]):]
+            l = temp.find(s[-1])
+            j+=l +len(s[-1])
+            temp=temp[l+len(s[-1]):]
             i+=1
-        output_string=input_string[:j+len(s[-1])]
+        # output_string=input_string[:j+len(s[-1])]
+        output_string=input_string[:j]
         content = BeautifulSoup(output_string)
 
     else:
         content = args[0].get('content')
-    return content
+    return str(content)
 
 
 def _date(*args, **kwargs):
