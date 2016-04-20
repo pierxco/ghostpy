@@ -41,5 +41,7 @@ setup(name='ghostpy',
           ],
       install_requires=[
           'PyMeta3>=0.5.1',
+          'beautifulsoup4==4.4.1',
+          'bleach==1.4.2',
           ],
       )

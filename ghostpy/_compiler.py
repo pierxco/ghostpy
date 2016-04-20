@@ -21,7 +21,7 @@ __all__ = [
     'Compiler',
     'strlist',
     'Scope'
-    ]
+]
 
 __metaclass__ = type
 
@@ -33,7 +33,7 @@ import linecache
 from datetime import datetime
 from urllib import quote
 from collections import OrderedDict
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 import os.path
 
 import ghostpy
@@ -50,10 +50,8 @@ except NameError:
     # Python 3 support
     str_class = str
 
-
 # Flag for testing
 debug = False
-
 
 # Note that unless we presume handlebars is only generating valid html, we have
 # to accept anything - so a broken template won't be all that visible - it will
@@ -166,12 +164,10 @@ compile_grammar = compile_grammar.format(str_class=str_class.__name__)
 
 
 class PybarsError(Exception):
-
     pass
 
 
 class strlist(list):
-
     """A quasi-list to let the template code avoid special casing."""
 
     def __str__(self):  # Python 3
@@ -204,7 +200,7 @@ _map = {
     '`': '&#x60;',
     '<': '&lt;',
     '>': '&gt;',
-    }
+}
 
 
 def substitute(match, _map=_map):
@@ -233,8 +229,8 @@ sentinel = object()
 
 
 class Scope:
-
-    def __init__(self, context, parent, root, overrides=None, index=None, key=None, first=None, last=None, columns=None):
+    def __init__(self, context, parent, root, overrides=None, index=None, key=None, first=None, last=None,
+                 columns=None):
         self.context = context
         self.parent = parent
         self.root = root
@@ -272,6 +268,7 @@ class Scope:
         if self.overrides and name in self.overrides:
             return self.overrides[name]
         return pick(self.context, name, default)
+
     __getitem__ = get
 
     def __len__(self):
@@ -381,65 +378,65 @@ def _blockHelperMissing(this, options, context, scope):
 
 def _content(*args, **kwargs):
     if kwargs.get('words') is not None:
-        input_string=args[0].get('content')
+        input_string = args[0].get('content')
         p = re.compile(r'<[^<]*?>')
-        words=p.sub('', input_string).split(' ')
-        words=filter(lambda a: a != '', words)
-        s=words[:int(kwargs.get('words'))]
+        words = p.sub('', input_string).split(' ')
+        words = filter(lambda a: a != '', words)
+        s = words[:int(kwargs.get('words'))]
 
-        temp=input_string
-        k=' '.join(s).count(s[-1])
-        i=1
-        j=0
-        l=0
-        while i<=k:
+        temp = input_string
+        k = ' '.join(s).count(s[-1])
+        i = 1
+        j = 0
+        l = 0
+        while i <= k:
             l = temp.find(s[-1])
-            j+=l +len(s[-1])
-            temp=temp[l+len(s[-1]):]
-            i+=1
+            j += l + len(s[-1])
+            temp = temp[l + len(s[-1]):]
+            i += 1
         # output_string=input_string[:j+len(s[-1])]
-        output_string=input_string[:j]
+        output_string = input_string[:j]
         content = BeautifulSoup(output_string)
     elif kwargs.get('characters') is not None:
-        input_string=args[0].get('content')
+        input_string = args[0].get('content')
         p = re.compile(r'<[^<]*?>')
         stripped = p.sub('', input_string)
         # chars = list(stripped[:int(kwargs.get('characters'))])
         # s = filter(lambda a: a != '', chars)
         i = int(kwargs.get('characters'))
-        if stripped[i-1] == ' ':
+        if stripped[i - 1] == ' ':
             end = i
         else:
             end = i + stripped[i:].index(' ')
         s = stripped[:end].split(' ')
         s = filter(lambda a: a != '', s)
 
-        temp=input_string
-        k=' '.join(s).count(s[-1])
-        i=1
-        j=0
-        l=0
-        while i<=k:
+        temp = input_string
+        k = ' '.join(s).count(s[-1])
+        i = 1
+        j = 0
+        l = 0
+        while i <= k:
             l = temp.find(s[-1])
-            j+=l +len(s[-1])
-            temp=temp[l+len(s[-1]):]
-            i+=1
+            j += l + len(s[-1])
+            temp = temp[l + len(s[-1]):]
+            i += 1
         # output_string=input_string[:j+len(s[-1])]
-        output_string=input_string[:j]
+        output_string = input_string[:j]
         content = BeautifulSoup(output_string)
 
     else:
         content = args[0].get('content')
-    return str(content)
+    return strlist(content)
 
 
 def _date(*args, **kwargs):
-    date_ = args[0].get('date')
+    date_ = args[0].get('date') or args[0].get('created_at')
     if date_ is None:
         date = datetime.today()
     else:
-        date_ = " ".join(date_.split(" ")[:-2])
-        date = datetime.strptime(date_, '%a %b %d %Y %X')
+        date_ = date_.split("T")[0]
+        date = datetime.strptime(date_, '%Y-%m-%d')
     format = kwargs.get('format')
     dict = OrderedDict([
         ("YYYY", "%Y"),
@@ -505,10 +502,10 @@ def _excerpt(this, *args, **kwargs):
     strip = True
 
     content = str(bleach.clean(this.get('content'),
-                        tags=tags,
-                        attributes=attr,
-                        styles=styles,
-                        strip=strip))
+                               tags=tags,
+                               attributes=attr,
+                               styles=styles,
+                               strip=strip))
 
     if "words" in kwargs.keys():
         words = content.split()
@@ -574,7 +571,7 @@ def _ghost_head(*args, **kwargs):
 
 
 def _ghost_foot(*args, **kwargs):
-    return "<script type='text/javascript' src='public/jquery.js'></script>"
+    return ''
 
 
 def _has(this, options, **kwargs):
@@ -632,6 +629,11 @@ def _if(this, options, context):
         return options['inverse'](this)
 
 
+def _post(this, options):
+
+    return options['fn'](this.get('post'))
+
+
 def _is(this, options, list):
     context_list_ = list
     context_list = context_list_.split(', ')
@@ -642,6 +644,7 @@ def _is(this, options, list):
         return options['fn'](this)
     else:
         return options['inverse'](this)
+
 
 def _log(this, context):
     ghostpy.log(context)
@@ -655,10 +658,7 @@ def _lookup(this, context, key):
 
 
 def _page_url(*args, **kwargs):
-    if args[0]['page'] is 1:
-        return "./" + str(args[2])
-    else:
-        return "../" + str(args[2])
+    return "./" + str(args[2])
 
 
 def _plural(*args, **kwargs):
@@ -677,8 +677,9 @@ def _post_class(*args, **kwargs):
     tags = args[0].get('tags')
     if tags is not None:
         for tag in tags:
-            classes.append("tag-" + tag.get('id'))
+            classes.append("tag-{}".format(tag.get('id')))
     return " ".join(classes)
+
 
 def _tags(*args, **kwargs):
     tags = args[0].get('tags')
@@ -686,31 +687,31 @@ def _tags(*args, **kwargs):
     autolink = kwargs.get('autolink')
     prefix = kwargs.get('prefix')
     suffix = kwargs.get('suffix')
-    if separator == None:
+    if separator is None:
         separator = ", "
 
-    if prefix == None:
+    if prefix is None:
         prefix = ""
     else:
-        prefix = prefix + " "
+        prefix += " "
 
-    if suffix == None:
+    if suffix is None:
         suffix = ""
     else:
         suffix = " " + suffix
 
-    if autolink == None:
+    if autolink is None:
         autolink = "True"
 
     html = []
     if tags is not None:
         for tag in tags:
             if autolink in ["True", "true"]:
-                html.append("<a href='" + tag.get('url') + "'>" + tag.get('name') + "</a>")
+                html.append("<a href='" + tag.get('url', '#') + "'>" + tag.get('name') + "</a>")
             elif autolink in ["False", "false"]:
                 html.append(tag.get('name'))
     html = separator.join(html)
-    html = prefix + html + suffix
+    html = strlist([prefix, html, suffix])
     return html
 
 
@@ -720,15 +721,14 @@ def _unless(this, options, context):
     else:
         return options['inverse'](this)
 
+
 def _url(*args, **kwargs):
     scope = args[1]
     context = _ghostpy_['context']
     absolute = False
     if kwargs.get('absolute') in ['True', 'true']:
         absolute = True
-    route = ''
-    url = ''
-
+    route = args[0].get('url')
     if 'index' in context:
         if scope is 'root':
             if _ghostpy_['root']['pagination']['page'] is 1:
@@ -759,8 +759,9 @@ def _url(*args, **kwargs):
         if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
             file = args[0].get('file')
             if absolute:
-                route = _ghostpy_['base']+"/post/"+file
-            else: return "../" + file
+                route = _ghostpy_['base'] + "/post/" + file
+            else:
+                return "../" + file
 
         if scope is 'navigation':
             route = "<undefined>"
@@ -816,12 +817,12 @@ _ghostpy_defaults = {
 
 _ghostpy_ = copy.deepcopy(_ghostpy_defaults)
 
+
 def reset():
     return copy.deepcopy(_ghostpy_defaults)
 
 
 class FunctionContainer:
-
     """
     Used as a container for functions by the CodeBuidler
     """
@@ -835,39 +836,38 @@ class FunctionContainer:
         nav_default = '<ul class="nav">{{#foreach navigation}}<li class="nav-{{slug}}{{#if current}} nav-current{{/if}}" role="presentation"><a href="{{url absolute="true"}}">{{label}}</a></li>{{/foreach}}</ul>'
         pag_default = '<nav class="pagination" role="navigation">{{#if prev}}<a class="newer-posts" href="{{page_url prev}}">&larr; Newer Posts</a>{{/if}}<span class="page-number">Page {{page}} of {{pages}}</span>{{#if next}}<a class="older-posts" href="{{page_url next}}">Older Posts &rarr;</a>{{/if}}</nav>'
         headers = (
-            u'import ghostpy\n'
-            u'\n'
-            u'if ghostpy.__version__ != %s:\n'
-            u'    raise ghostpy.PybarsError("This template was precompiled with pybars3 version %s, running version %%s" %% ghostpy.__version__)\n'
-            u'\n'
-            u'from ghostpy import strlist, Scope, PybarsError\n'
-            u'from ghostpy._compiler import Compiler, _ghostpy_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
-            u'\n'
-            u'from functools import partial\n'
-            u'\n'
-            u'\n'
-            u'def _partial(path, context, helpers, partials, root):\n'
-            u"    compiler = Compiler(_ghostpy_['theme'])\n"
-            u"    if path != 'navigation' and path != 'pagination':\n"
-            u"        with open(path) as hbs:\n"
-            u"            source = hbs.read().decode('unicode-escape')\n"
-            u"    elif path == 'navigation':\n"
-            u"        source = u'%s'\n"
-            u"    elif path == 'pagination':\n"
-            u"        source = u'%s'\n"
-            # u"    import pdb; pdb.set_trace()\n"
-            u"    template = compiler.compile(source)\n"
-            u"    output = template(context)\n"
-            u"    return output\n"
-            u'\n'
-            u'\n'
-        ) % (repr(ghostpy.__version__), ghostpy.__version__, nav_default, pag_default)
+                      u'import ghostpy\n'
+                      u'\n'
+                      u'if ghostpy.__version__ != %s:\n'
+                      u'    raise ghostpy.PybarsError("This template was precompiled with pybars3 version %s, running version %%s" %% ghostpy.__version__)\n'
+                      u'\n'
+                      u'from ghostpy import strlist, Scope, PybarsError\n'
+                      u'from ghostpy._compiler import Compiler, _ghostpy_, escape, resolve, resolve_subexpr, prepare, ensure_scope\n'
+                      u'\n'
+                      u'from functools import partial\n'
+                      u'\n'
+                      u'\n'
+                      u'def _partial(path, context, helpers, partials, root):\n'
+                      u"    compiler = Compiler(_ghostpy_['theme'])\n"
+                      u"    if path != 'navigation' and path != 'pagination':\n"
+                      u"        with open(path) as hbs:\n"
+                      u"            source = hbs.read().decode('unicode-escape')\n"
+                      u"    elif path == 'navigation':\n"
+                      u"        source = u'%s'\n"
+                      u"    elif path == 'pagination':\n"
+                      u"        source = u'%s'\n"
+                      # u"    import pdb; pdb.set_trace()\n"
+                      u"    template = compiler.compile(source)\n"
+                      u"    output = template(context)\n"
+                      u"    return output\n"
+                      u'\n'
+                      u'\n'
+                  ) % (repr(ghostpy.__version__), ghostpy.__version__, nav_default, pag_default)
 
         return headers + self.code
 
 
 class CodeBuilder:
-
     """Builds code for a template."""
 
     def __init__(self):
@@ -970,17 +970,17 @@ class CodeBuilder:
             u"    options['helpers'] = helpers\n"
             u"    options['partials'] = partials\n"
             u"    options['root'] = root\n"
-            ])
+        ])
         if alt_nested:
             self._result.grow([
                 u"    options['inverse'] = ",
                 self._wrap_nested(alt_name),
                 u"\n"
-                ])
+            ])
         else:
             self._result.grow([
                 u"    options['inverse'] = lambda this: None\n"
-                ])
+            ])
         if symbol == 'foreach' or symbol == 'each':
             if len(arguments_) == 2:
                 (key, value) = tuple(arguments_[1].split('='))
@@ -1002,7 +1002,7 @@ class CodeBuilder:
                 u"    else:\n"
                 u"        value = helpers['blockHelperMissing'](context, options, value, '%s')\n" % symbol,
                 u"    result.grow(value or '')\n"
-                ])
+            ])
 
     def add_literal(self, value):
         self._result.grow(u"    result.append(%s)\n" % repr(value))
@@ -1036,7 +1036,7 @@ class CodeBuilder:
                     u"        value = resolve(context, '%s')\n" % path,
                     u"    if hasattr(value, '__call__'):\n"
                     u"        value = value(context, scope%s\n" % call,
-                    ])
+                ])
             else:
                 realname = None
                 self._result.grow([
@@ -1048,19 +1048,19 @@ class CodeBuilder:
                     u"    if value is None:\n",
                     u"        value = %s\n" % path,
                     u"    if hasattr(value, '__call__'):\n"
-                    u"        context_ = resolve(context, '"  + u"', '".join(segments[:-1]) + u"')\n",
+                    u"        context_ = resolve(context, '" + u"', '".join(segments[:-1]) + u"')\n",
                     u"        value = value(context_, scope%s\n" % call,
                 ])
             self._result.grow([
                 u"    if hasattr(value, '__call__'):\n"
                 u"        value = value(context, scope%s\n" % call,
-                ])
+            ])
             if realname:
                 self._result.grow(
                     u"    elif value is None:\n"
                     u"        value = helpers['helperMissing'](context, '%s'%s\n"
-                        % (realname, call)
-                    )
+                    % (realname, call)
+                )
 
     def add_escaped_expand(self, path_type_path, arguments_):
         if len(arguments_) > 0 and type(arguments_[0]) == tuple:
@@ -1077,7 +1077,7 @@ class CodeBuilder:
         if path != "navigation" and path != "pagination":
             self._result.grow([
                 u"    result.grow(prepare(value, True))\n"
-                ])
+            ])
 
     def add_expand(self, path_type_path, arguments):
         (path_type, path) = path_type_path
@@ -1085,7 +1085,7 @@ class CodeBuilder:
         self.find_lookup(path, path_type, call)
         self._result.grow([
             u"    result.grow(prepare(value, False))\n"
-            ])
+        ])
 
     def _debug(self):
         self._result.grow(u"    import pdb;pdb.set_trace()\n")
@@ -1105,11 +1105,11 @@ class CodeBuilder:
             u"    result.grow(_partial(%s, %s, helpers=helpers, partials=partials, root=root))\n" % (fn_name, this_name)
         ])
 
-
     def add_partial(self, symbol, arguments):
         arg = ""
 
-        if symbol == "navigation" or symbol == "pagination" and not os.path.isfile(_ghostpy_['theme'] + "/partials/" + symbol + ".hbs"):
+        if symbol == "navigation" or symbol == "pagination" and not os.path.isfile(
+                                        _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"):
             path = symbol
         else:
             path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
@@ -1152,8 +1152,8 @@ class CodeBuilder:
                 u"    scope_ = Scope(%s, context, root, overrides=overrides)\n" % self._lookup_arg(arg)])
             self._invoke_template("path", "scope_")
 
-class Compiler:
 
+class Compiler:
     """A handlebars template compiler.
 
     The compiler is not threadsafe: you need one per thread because of the
@@ -1165,8 +1165,7 @@ class Compiler:
     # _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
     def _asset(self, *args, **kwargs):
-        return _ghostpy_['theme'] + "/assets/"+args[2]
-
+        return _ghostpy_['theme'] + "/assets/" + args[2]
 
     def _image(self, *args, **kwargs):
         path = args[0].get('image')
@@ -1199,7 +1198,11 @@ class Compiler:
 
         if not isinstance(source, str_class):
             raise PybarsError("Template source must be a unicode string")
-
+        default_pattern = re.compile(r'\{\{!< (.+)\}\}')
+        match = default_pattern.match(source)
+        if match:
+            with open('{}/{}.hbs'.format(_ghostpy_['theme'], match.group(1))) as default_hbs:
+                source = default_hbs.read().decode('unicode-escape').replace('{{{body}}}', source)
         tree, error = self._handlebars(source).apply('template')
 
         self.clean_whitespace(tree)
@@ -1282,7 +1285,7 @@ class Compiler:
 
         mod = ModuleType(mod_name)
         filename = '%s.py' % mod_name.replace('ghostpy.', '').replace('.', '/')
-        exec(compile(container.full_code, filename, 'exec', dont_inherit=True), mod.__dict__)
+        exec (compile(container.full_code, filename, 'exec', dont_inherit=True), mod.__dict__)
         sys.modules[mod_name] = mod
         linecache.getlines(filename, mod.__dict__)
 
@@ -1309,7 +1312,8 @@ class Compiler:
                 # then delete it so we don't introduce extra newlines to the output
                 open_pre_whitespace = False
                 open_pre_content = True
-                if pointer > 1 and tree[pointer - 1][0] == 'whitespace' and (tree[pointer - 2][0] == 'newline' or tree[pointer - 2] == 'template'):
+                if pointer > 1 and tree[pointer - 1][0] == 'whitespace' and (
+                        tree[pointer - 2][0] == 'newline' or tree[pointer - 2] == 'template'):
                     open_pre_whitespace = True
                     open_pre_content = False
                 elif pointer > 0 and (tree[pointer - 1][0] == 'newline' or tree[pointer - 1] == 'template'):
@@ -1337,7 +1341,8 @@ class Compiler:
                 close_pre_whitespace = False
                 close_pre_content = True
                 child_len = len(child_tree)
-                if child_len > 2 and child_tree[child_len - 1][0] == 'whitespace' and child_tree[child_len - 2][0] == 'newline':
+                if child_len > 2 and child_tree[child_len - 1][0] == 'whitespace' and child_tree[child_len - 2][
+                    0] == 'newline':
                     close_pre_whitespace = True
                     close_pre_content = False
                 elif child_len > 1 and child_tree[child_len - 1][0] == 'newline':
@@ -1346,7 +1351,8 @@ class Compiler:
                 close_post_whitespace = False
                 close_post_content = True
                 tree_len = len(tree)
-                if tree_len > pointer + 2 and tree[pointer + 1][0] == 'whitespace' and tree[pointer + 2][0] == 'newline':
+                if tree_len > pointer + 2 and tree[pointer + 1][0] == 'whitespace' and tree[pointer + 2][
+                    0] == 'newline':
                     close_post_whitespace = True
                     close_post_content = False
                 elif tree_len == pointer + 2 and tree[pointer + 1][0] == 'whitespace':

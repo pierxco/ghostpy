@@ -28,7 +28,7 @@ from ghostpy import Compiler
 
 def render(source, context, helpers=None, partials=None, knownHelpers=None,
         knownHelpersOnly=False):
-    compiler = Compiler()
+    compiler = Compiler('casper')
     template = compiler.compile(source)
     # For real use, partials is a dict of compiled templates; but for testing
     # we compile just-in-time.

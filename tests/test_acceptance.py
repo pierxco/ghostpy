@@ -2102,7 +2102,7 @@ class TestAcceptance(TestCase):
             }
             result = "Goodbye\ncruel\nworld!"
 
-            compiler = Compiler()
+            compiler = Compiler('casper')
             code = compiler.precompile(template)
 
             with open('test_precompile.py', 'w') as f:
