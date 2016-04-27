@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # GNU Lesser General Public License version 3 (see the file LICENSE).
-
 """The compiler for ghostpy."""
 
 
@@ -730,46 +729,45 @@ def _url(*args, **kwargs):
         absolute = True
     route = args[0].get('url')
     if 'index' in context:
-        if scope is 'root':
-            if _ghostpy_['root']['pagination']['page'] is 1:
+        if scope == 'root':
+            if _ghostpy_['root']['pagination']['page'] == 1:
                 route = "./"
             else:
                 route = "../"
 
-        if scope is 'post' or scope is 'next_post' or scope is 'prev_post' or scope is 'posts':
+        if scope == 'post' or scope == 'next_post' or scope == 'prev_post' or scope == 'posts':
             file = args[0].get('file')
-            if _ghostpy_['root']['pagination']['page'] is 1:
+            if _ghostpy_['root']['pagination']['page'] == 1:
                 route = "./post/" + file
             else:
                 route = "../post/" + file
 
-        if scope is 'navigation':
+        if scope == 'navigation':
             route = "<undefined>"
 
-        if scope is 'author':
+        if scope == 'author':
             route = "<undefined>"
 
-        if scope is 'tag':
+        if scope == 'tag':
             route = "<undefined>"
-
     if 'post' in context:
-        if scope is 'root':
+        if scope == 'root':
             route = "../../"
 
-        if scope is 'post' or scope is 'next_post' or scope is 'prev_post':
+        if scope == 'post' or scope == 'next_post' or scope == 'prev_post':
             file = args[0].get('file')
             if absolute:
                 route = _ghostpy_['base'] + "/post/" + file
             else:
                 return "../" + file
 
-        if scope is 'navigation':
+        if scope == 'navigation':
             route = "<undefined>"
 
-        if scope is 'author':
+        if scope == 'author':
             route = "<undefined>"
 
-        if scope is 'tag':
+        if scope == 'tag':
             route = "<undefined>"
 
     return route
@@ -807,7 +805,8 @@ _ghostpy_defaults = {
         'with': _with
     },
     'partials': {},
-    'theme': 'casper',
+    'theme': '',
+    'lookup_dir': '',
     'blog_dict': {},
     'context': [],
     'scope': None,
@@ -816,6 +815,14 @@ _ghostpy_defaults = {
 }
 
 _ghostpy_ = copy.deepcopy(_ghostpy_defaults)
+
+
+def get_path(name, partial=False):
+    theme_dir = os.path.join(_ghostpy_['lookup_dir'], _ghostpy_['theme'])
+    if partial:
+        return os.path.join(theme_dir, 'partials', '{}.hbs'.format(name))
+    else:
+        return os.path.join(theme_dir, '{}.hbs'.format(name))
 
 
 def reset():
@@ -835,6 +842,8 @@ class FunctionContainer:
     def full_code(self):
         nav_default = '<ul class="nav">{{#foreach navigation}}<li class="nav-{{slug}}{{#if current}} nav-current{{/if}}" role="presentation"><a href="{{url absolute="true"}}">{{label}}</a></li>{{/foreach}}</ul>'
         pag_default = '<nav class="pagination" role="navigation">{{#if prev}}<a class="newer-posts" href="{{page_url prev}}">&larr; Newer Posts</a>{{/if}}<span class="page-number">Page {{page}} of {{pages}}</span>{{#if next}}<a class="older-posts" href="{{page_url next}}">Older Posts &rarr;</a>{{/if}}</nav>'
+        # nav_default = ''
+        # pag_default = ''
         headers = (
                       u'import ghostpy\n'
                       u'\n'
@@ -848,7 +857,7 @@ class FunctionContainer:
                       u'\n'
                       u'\n'
                       u'def _partial(path, context, helpers, partials, root):\n'
-                      u"    compiler = Compiler(_ghostpy_['theme'])\n"
+                      u"    compiler = Compiler(_ghostpy_['theme'], _ghostpy_['base'], _ghostpy_['lookup_dir'])\n"
                       u"    if path != 'navigation' and path != 'pagination':\n"
                       u"        with open(path) as hbs:\n"
                       u"            source = hbs.read().decode('unicode-escape')\n"
@@ -1108,11 +1117,12 @@ class CodeBuilder:
     def add_partial(self, symbol, arguments):
         arg = ""
 
-        if symbol == "navigation" or symbol == "pagination" and not os.path.isfile(
-                                        _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"):
+        full_path = get_path(symbol, partial=True)
+
+        if symbol in ["navigation", "pagination"] and not os.path.isfile(full_path):
             path = symbol
         else:
-            path = _ghostpy_['theme'] + "/partials/" + symbol + ".hbs"
+            path = full_path
 
         overrides = None
         positional_args = 0
@@ -1165,7 +1175,9 @@ class Compiler:
     # _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
     def _asset(self, *args, **kwargs):
-        return _ghostpy_['theme'] + "/assets/" + args[2]
+        if _ghostpy_['root']['pagination']['page'] > 1:
+            return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
+        return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
 
     def _image(self, *args, **kwargs):
         path = args[0].get('image')
@@ -1173,16 +1185,18 @@ class Compiler:
         if 'absolute' in kwargs.keys():
             absolute = kwargs.get('absolute')
         if absolute:
-            return 'http://localhost:63342/pybars3/' + path
+            return _ghostpy_['base'] + path
         else:
             return path
 
-    def __init__(self, theme):
+    def __init__(self, theme, domain='', lookup_dir=''):
         self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
         self._builder = CodeBuilder()
         self._compiler = OMeta.makeGrammar(compile_grammar, {'builder': self._builder})
         self._helpers = {}
         self.template_counter = 1
+        _ghostpy_['base'] = domain
+        _ghostpy_['lookup_dir'] = lookup_dir
         _ghostpy_['theme'] = theme
 
     def _generate_code(self, source):
@@ -1201,7 +1215,7 @@ class Compiler:
         default_pattern = re.compile(r'\{\{!< (.+)\}\}')
         match = default_pattern.match(source)
         if match:
-            with open('{}/{}.hbs'.format(_ghostpy_['theme'], match.group(1))) as default_hbs:
+            with open(get_path(match.group(1))) as default_hbs:
                 source = default_hbs.read().decode('unicode-escape').replace('{{{body}}}', source)
         tree, error = self._handlebars(source).apply('template')
 
