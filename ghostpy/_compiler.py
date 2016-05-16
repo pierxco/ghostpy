@@ -209,20 +209,41 @@ def substitute(match, _map=_map):
 _escape_re = re.compile(r"&|\"|'|`|<|>")
 
 
+def _asset(*args, **kwargs):
+    if args[0]['pagination']['page'] > 1:
+        return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
+    return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
+
+
+def _image(*args, **kwargs):
+    path = args[0].get('image')
+    absolute = False
+    if 'absolute' in kwargs.keys():
+        absolute = kwargs.get('absolute')
+    if absolute:
+        return _ghostpy_['base'] + path
+    else:
+        return path
+
+
 def escape(something, _escape_re=_escape_re, substitute=substitute):
     return _escape_re.sub(substitute, something)
 
 
 def pick(context, name, default=None):
-    if isinstance(name, str) and hasattr(context, name):
-        return getattr(context, name)
-    if hasattr(context, 'get'):
-        return context.get(name)
+    # if isinstance(name, str) and hasattr(context, name):
+    #     return getattr(context, name)
+    # if hasattr(context, 'get'):
+    #     return context.get(name)
+    # TODO: deal with maximum recursion depth exceeded here
     try:
         return context[name]
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, AttributeError):
+        if isinstance(name, str) and hasattr(context, name):
+            return getattr(context, name)
+        if hasattr(context, 'get') and not isinstance(context, Scope):
+            return context.get(name)
         return default
-
 
 sentinel = object()
 
@@ -284,7 +305,6 @@ class Scope:
 
 def resolve(context, *segments):
     carryover_data = False
-
     # This makes sure that bare "this" paths don't return a Scope object
     if segments == ('',) and isinstance(context, Scope):
         return context.get('this')
@@ -781,6 +801,8 @@ def _with(this, options, context):
 _ghostpy_defaults = {
     'helpers': {
         '_author': _author,
+        'asset': _asset,
+        'image': _image,
         'blockHelperMissing': _blockHelperMissing,
         'content': _content,
         'date': _date,
@@ -858,14 +880,16 @@ class FunctionContainer:
                       u'\n'
                       u'def _partial(path, context, helpers, partials, root):\n'
                       u"    compiler = Compiler(_ghostpy_['theme'], _ghostpy_['base'], _ghostpy_['lookup_dir'])\n"
-                      u"    if path != 'navigation' and path != 'pagination':\n"
+                      u"    if path != 'navigation' and path != 'pagination' and not hasattr(path, '__call__'):\n"
                       u"        with open(path) as hbs:\n"
                       u"            source = hbs.read().decode('unicode-escape')\n"
                       u"    elif path == 'navigation':\n"
                       u"        source = u'%s'\n"
                       u"    elif path == 'pagination':\n"
                       u"        source = u'%s'\n"
-                      # u"    import pdb; pdb.set_trace()\n"
+                      # TODO: check why function is here in velma theme
+                      u"    else:\n"
+                      u"        source = u''\n"
                       u"    template = compiler.compile(source)\n"
                       u"    output = template(context)\n"
                       u"    return output\n"
@@ -1174,21 +1198,6 @@ class Compiler:
     # _builder = CodeBuilder()
     # _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
-    def _asset(self, *args, **kwargs):
-        if _ghostpy_['root']['pagination']['page'] > 1:
-            return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
-        return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
-
-    def _image(self, *args, **kwargs):
-        path = args[0].get('image')
-        absolute = False
-        if 'absolute' in kwargs.keys():
-            absolute = kwargs.get('absolute')
-        if absolute:
-            return _ghostpy_['base'] + path
-        else:
-            return path
-
     def __init__(self, theme, domain='', lookup_dir=''):
         self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
         self._builder = CodeBuilder()
@@ -1270,8 +1279,6 @@ class Compiler:
         :return:
             A template function ready to execute
         """
-
-        _ghostpy_['helpers'].update({"asset": self._asset, "image": self._image})
 
         container = self._generate_code(source)
 
