@@ -210,7 +210,7 @@ _escape_re = re.compile(r"&|\"|'|`|<|>")
 
 
 def _asset(*args, **kwargs):
-    if args[0]['pagination']['page'] > 1:
+    if args[0]['pagination'] and args[0]['pagination']['page'] > 1:
         return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
     return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
 
@@ -361,7 +361,10 @@ def prepare(value, should_escape):
             if type_ is bool:
                 value = u'true' if value else u'false'
             else:
-                value = str_class(value)
+                try:
+                    value = str_class(value)
+                except UnicodeDecodeError:
+                    value = str_class(value.decode('utf8'))
         if should_escape:
             value = escape(value)
     return value
@@ -456,7 +459,7 @@ def _date(*args, **kwargs):
     else:
         date_ = date_.split("T")[0]
         date = datetime.strptime(date_, '%Y-%m-%d')
-    format = kwargs.get('format')
+    format = kwargs.get('format', 'YYYY-MM-DD')
     dict = OrderedDict([
         ("YYYY", "%Y"),
         ("YY", "%y"),
@@ -1015,11 +1018,10 @@ class CodeBuilder:
                 u"    options['inverse'] = lambda this: None\n"
             ])
         if symbol == 'foreach' or symbol == 'each':
+            value = "None"
             if len(arguments_) == 2:
-                (key, value) = tuple(arguments_[1].split('='))
-                assert key == 'columns'
-            else:
-                value = "None"
+                if arguments_[1].split('=')[0] == 'columns':
+                    (key, value) = tuple(arguments_[1].split('='))
             self._result.grow([
                 u"    value = resolve(context, '%s')\n" % scope[0],
                 u"    value = helpers['%s'](context, options, value, '%s', columns=%s)\n" % (symbol, scope[0], value),
@@ -1221,7 +1223,7 @@ class Compiler:
 
         if not isinstance(source, str_class):
             raise PybarsError("Template source must be a unicode string")
-        default_pattern = re.compile(r'\{\{!< (.+)\}\}')
+        default_pattern = re.compile(r'\s*\{\{!< (.+)\}\}')
         match = default_pattern.match(source)
         if match:
             with open(get_path(match.group(1))) as default_hbs:
