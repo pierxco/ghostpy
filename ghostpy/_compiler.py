@@ -211,8 +211,8 @@ _escape_re = re.compile(r"&|\"|'|`|<|>")
 
 def _asset(*args, **kwargs):
     if args[0]['pagination'] and args[0]['pagination']['page'] > 1:
-        return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
-    return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2]
+        return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2].replace('assets/', '')
+    return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2].replace('assets/', '')
 
 
 def _image(*args, **kwargs):
@@ -231,11 +231,7 @@ def escape(something, _escape_re=_escape_re, substitute=substitute):
 
 
 def pick(context, name, default=None):
-    # if isinstance(name, str) and hasattr(context, name):
-    #     return getattr(context, name)
-    # if hasattr(context, 'get'):
-    #     return context.get(name)
-    # TODO: deal with maximum recursion depth exceeded here
+    # TODO: deal with maximum recursion depth exceeded here: exclude {{!< default}} from partials
     try:
         return context[name]
     except (KeyError, TypeError, AttributeError):
@@ -352,7 +348,6 @@ def prepare(value, should_escape):
     :return:
         A unicode string or strlist
     """
-
     if value is None:
         return u''
     type_ = type(value)
@@ -652,7 +647,6 @@ def _if(this, options, context):
 
 
 def _post(this, options):
-
     return options['fn'](this.get('post'))
 
 
@@ -890,7 +884,6 @@ class FunctionContainer:
                       u"        source = u'%s'\n"
                       u"    elif path == 'pagination':\n"
                       u"        source = u'%s'\n"
-                      # TODO: check why function is here in velma theme
                       u"    else:\n"
                       u"        source = u''\n"
                       u"    template = compiler.compile(source)\n"
@@ -1228,10 +1221,9 @@ class Compiler:
         if match:
             with open(get_path(match.group(1))) as default_hbs:
                 source = default_hbs.read().decode('unicode-escape').replace('{{{body}}}', source)
-        tree, error = self._handlebars(source).apply('template')
+        tree, error = self._handlebars(source.replace('~}}', '}}').replace('{{~', '{{')).apply('template')
 
         self.clean_whitespace(tree)
-
         if debug:
             print('\nAST')
             print('---')
