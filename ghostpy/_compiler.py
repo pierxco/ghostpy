@@ -24,21 +24,22 @@ __all__ = [
 
 __metaclass__ = type
 
+import copy
+import linecache
+import os.path
 import re
 import sys
-import bleach
-from types import ModuleType
-import linecache
-from datetime import datetime
-from urllib import quote
 from collections import OrderedDict
+from datetime import datetime
+from types import ModuleType
+from urllib import quote
+
+import bleach
 from bs4 import BeautifulSoup
-import os.path
+from pymeta.grammar import OMeta
 
 import ghostpy
-import copy
 import ghostpy._templates
-from pymeta.grammar import OMeta
 
 # This allows the code to run on Python 2 and 3 by
 # creating a consistent reference for the appropriate
@@ -211,8 +212,9 @@ _escape_re = re.compile(r"&|\"|'|`|<|>")
 
 def _asset(*args, **kwargs):
     if args[0]['pagination'] and args[0]['pagination']['page'] > 1:
-        return '../../static/' + _ghostpy_['theme'] + '/assets/' + args[2].replace('assets/', '')
-    return '../static/' + _ghostpy_['theme'] + '/assets/' + args[2].replace('assets/', '')
+        return '../../{}/'.format(_ghostpy_['lookup_url']) + _ghostpy_['theme'] + '/assets/' + args[2].replace(
+            'assets/', '')
+    return '../{}/'.format(_ghostpy_['lookup_url']) + _ghostpy_['theme'] + '/assets/' + args[2].replace('assets/', '')
 
 
 def _image(*args, **kwargs):
@@ -578,6 +580,7 @@ def _for_each(this, options, context, scope, columns=None):
         options['fn'].keywords['scope'] = scope
         result.grow(options['fn'](scope_))
 
+
         index += 1
 
     return result
@@ -826,6 +829,7 @@ _ghostpy_defaults = {
     'partials': {},
     'theme': '',
     'lookup_dir': '',
+    'lookup_url': '',
     'blog_dict': {},
     'context': [],
     'scope': None,
@@ -876,7 +880,7 @@ class FunctionContainer:
                       u'\n'
                       u'\n'
                       u'def _partial(path, context, helpers, partials, root):\n'
-                      u"    compiler = Compiler(_ghostpy_['theme'], _ghostpy_['base'], _ghostpy_['lookup_dir'])\n"
+                      u"    compiler = Compiler(_ghostpy_['theme'], _ghostpy_['base'], _ghostpy_['lookup_dir'], _ghostpy_['lookup_url'])\n"
                       u"    if path != 'navigation' and path != 'pagination' and not hasattr(path, '__call__'):\n"
                       u"        with open(path) as hbs:\n"
                       u"            source = hbs.read().decode('unicode-escape')\n"
@@ -1193,7 +1197,7 @@ class Compiler:
     # _builder = CodeBuilder()
     # _compiler = OMeta.makeGrammar(compile_grammar, {'builder': _builder})
 
-    def __init__(self, theme, domain='', lookup_dir=''):
+    def __init__(self, theme, domain='', lookup_dir='', lookup_url=''):
         self._handlebars = OMeta.makeGrammar(handlebars_grammar, {}, 'handlebars')
         self._builder = CodeBuilder()
         self._compiler = OMeta.makeGrammar(compile_grammar, {'builder': self._builder})
@@ -1201,6 +1205,7 @@ class Compiler:
         self.template_counter = 1
         _ghostpy_['base'] = domain
         _ghostpy_['lookup_dir'] = lookup_dir
+        _ghostpy_['lookup_url'] = lookup_url
         _ghostpy_['theme'] = theme
 
     def _generate_code(self, source):
