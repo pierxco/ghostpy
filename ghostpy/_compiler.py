@@ -677,7 +677,12 @@ def _lookup(this, context, key):
 
 
 def _page_url(*args, **kwargs):
-    return "./" + str(args[2])
+    if args[2] == 1:
+        return '../'
+    if args[0].context and args[0].context['page'] == 1:
+        return "./page/" + str(args[2])
+    else:
+        return "./" + str(args[2])
 
 
 def _plural(*args, **kwargs):
