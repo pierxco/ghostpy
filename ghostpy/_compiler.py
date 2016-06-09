@@ -259,6 +259,7 @@ class Scope:
         self.first = first
         self.last = last
         self.columns = columns
+        self.level_from_root = self.root.get('level_from_root', 0)
 
     def get(self, name, default=None):
         if name == '@blog':
@@ -397,7 +398,7 @@ def _blockHelperMissing(this, options, context, scope):
 
 def _content(*args, **kwargs):
     if kwargs.get('words') is not None:
-        input_string = args[0].get('content')
+        input_string = args[0].get('html')
         p = re.compile(r'<[^<]*?>')
         words = p.sub('', input_string).split(' ')
         words = filter(lambda a: a != '', words)
@@ -417,7 +418,7 @@ def _content(*args, **kwargs):
         output_string = input_string[:j]
         content = BeautifulSoup(output_string)
     elif kwargs.get('characters') is not None:
-        input_string = args[0].get('content')
+        input_string = args[0].get('html')
         p = re.compile(r'<[^<]*?>')
         stripped = p.sub('', input_string)
         # chars = list(stripped[:int(kwargs.get('characters'))])
@@ -445,7 +446,7 @@ def _content(*args, **kwargs):
         content = BeautifulSoup(output_string)
 
     else:
-        content = args[0].get('content')
+        content = args[0].get('html')
     return strlist(content)
 
 
@@ -706,6 +707,10 @@ def _post_class(*args, **kwargs):
 
 
 def _tags(*args, **kwargs):
+    level_from_root = args[0].level_from_root
+    url_prefix = ''
+    if level_from_root > 0:
+        url_prefix = '.' * level_from_root + '/'
     tags = args[0].get('tags')
     separator = kwargs.get('separator')
     autolink = kwargs.get('autolink')
@@ -731,7 +736,7 @@ def _tags(*args, **kwargs):
     if tags is not None:
         for tag in tags:
             if autolink in ["True", "true"]:
-                html.append("<a href='" + tag.get('url', '#') + "'>" + tag.get('name') + "</a>")
+                html.append("<a href='{}tag/".format(url_prefix) + tag.get('slug', '#') + "'>" + tag.get('name') + "</a>")
             elif autolink in ["False", "false"]:
                 html.append(tag.get('name'))
     html = separator.join(html)
@@ -753,6 +758,8 @@ def _url(*args, **kwargs):
     if kwargs.get('absolute') in ['True', 'true']:
         absolute = True
     route = args[0].get('url')
+    if absolute:
+        route = _ghostpy_['base'] + route
     if 'index' in context:
         if scope == 'root':
             if _ghostpy_['root']['pagination']['page'] == 1:
